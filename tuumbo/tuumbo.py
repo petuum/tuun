@@ -9,6 +9,8 @@ import numpy as np
 import copy
 
 from .util.misc_util import dict_to_namespace
+from .acq.acqfun import get_acqfunction_from_config
+from .acq.acqopt import get_acqoptimizer_from_config
 
 
 class Tuumbo:
@@ -16,7 +18,7 @@ class Tuumbo:
     Class to carry out tuumbo: tuning and uncertainty-model-based optimization.
     """
 
-    def __init__(data, model=None, acqfunction=None, acqoptimizer=None,
+    def __init__(self, data, model=None, acqfunction=None, acqoptimizer=None,
                  params=None, verbose=True, seed=None):
         """
         Parameters
@@ -63,7 +65,7 @@ class Tuumbo:
         """Set self.params, the parameters for tuumbo."""
         params = dict_to_namespace(params)
         self.params = Namespace()
-        self.params.n_iter = getattr(params, 'n_rep', 1)
+        self.params.n_rep = getattr(params, 'n_rep', 1)
 
     def set_data(self, data):
         """Set self.data, the dataset to be modeled."""
@@ -72,27 +74,15 @@ class Tuumbo:
         if data is None:
             data = Namespace()
 
-        if not hasattr(data, 'x_init') and not hasattr(data, 'x'):
-            raise Exception('Input data must contain x and/or x_init')
+        if not hasattr(data, 'x') and not hasattr(data, 'y'):
+            # TODO: once this code supports empty data, set data.x = [] and
+            # data.y = [].
+            pass
 
-        if not hasattr(data, 'x_init'):
-            data.x_init = []
-
-        if hasattr(data, 'x') and not hasattr(data, 'y'):
-            data.x_init.extend(copy.deepcopy(data.x))
-            data.x = []
-
-        if hasattr(data, 'y') and not hasattr(data, 'x'):
-            raise Exception('Input data contains y but not x')
-
-        if not hasattr(data, 'x'):
-            data.x = [] 
-
-        if not hasattr(data, 'y'):
-            data.y = []
+        if not hasattr(data, 'x') or not hasattr(data, 'y'):
+            raise Exception('Input data must contain lists x and y')
 
         self.data = data
-        self.n_obs_init = self.data.y.shape[0]
 
     def set_model(self, model):
         """Set self.model, the model used by tuumbo."""
@@ -111,7 +101,7 @@ class Tuumbo:
         acqfunction = dict_to_namespace(acqfunction)
 
         if acqfunction is None:
-            self.acqfunction = get_default_acqfunction(verbose=True)
+            self.acqfunction = get_acqfunction_from_config(None, verbose=True)
         elif isinstance(acqfunction, Namespace):
             self.acqfunction = get_acqfunction_from_config(acqfunction,
                                                            verbose=True)
@@ -132,8 +122,8 @@ class Tuumbo:
         acqoptimizer = dict_to_namespace(acqoptimizer)
 
         if acqoptimizer is None:
-            self.acqoptimizer = get_default_acqoptimizer(self.data,
-                                                         verbose=True)
+            self.acqoptimizer = get_acqoptimizer_from_config(None,
+                                                             verbose=True)
         elif isinstance(acqoptimizer, Namespace):
             self.acqoptimizer = get_acqoptimizer_from_config(acqoptimizer,
                                                              verbose=True)
@@ -147,6 +137,47 @@ class Tuumbo:
         if self.verbose:
             self.print_str()
 
+    def get(self):
+        """Perform acquisition optimization and return optima."""
+
+        # Setup acqoptimizer
+        self.acqoptimizer.setup_optimize()
+
+        # Multiprocessing
+        mp_manager = multiprocessing.Manager()
+        mp_return_dict = mp_manager.dict()
+
+        subseed = np.random.randint(13337)
+        proc = multiprocessing.Process(target=mp_acq_optimize,
+                                       args=(self.data,
+                                             self.model,
+                                             self.acqfunction,
+                                             self.acqoptimizer,
+                                             mp_return_dict,
+                                             subseed))
+        proc.start()
+        proc.join()
+        acq_optima = mp_return_dict['acq_optima']
+
+        return acq_optima
+
     def print_str(self):
         """Print a description string."""
-        print('*tuumbo with params={}'.format(self.params))
+        print('*Tuumbo with params={}'.format(self.params))
+
+
+def mp_acq_optimize(data, model, acqfunction, acqoptimizer, return_dict,
+                    seed=None):
+    """Acquisition optimization via multiprocessing."""
+    # Set random seed
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Setup acqfunction
+    acqfunction.setup_function(data, model, acqoptimizer)
+
+    # Optimize acqfunction
+    acq_optima = acqoptimizer.optimize(acqfunction, data)
+
+    # Add acq_optima to return_dict
+    return_dict['acq_optima'] = acq_optima
