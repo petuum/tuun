@@ -1,25 +1,20 @@
-from tuumbo import Tuumbo, RealDomain
-
-
-# define domain
-domain = RealDomain(params={'min_max': [(-10, 10)]})
+from tuumbo import Tuumbo, RealDomain, AcqOptimizer, SimpleGp
 
 # define initial dataset
-n = 5
-data = {'x': domain.unif_rand_sample(n), 'y':list(range(n))}
+data = {'x': [0., 1., 2.], 'y': [6., 3., 4.]}
 
 # define model
-model = None
+model = SimpleGp({'ls': 3.7, 'alpha': 1.85, 'sigma': 1e-5})
 
 # define acqfunction
-acqfunction = None
+acqfunction = {'acq_str': 'ei'}
 
 # define acqoptimizer
-acqoptimizer = None
+acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 
-# define params
-params = None
+# define tuumbo
+tu = Tuumbo(data, model, acqfunction, acqoptimizer)
 
-tu = Tuumbo(data, model, acqfunction, acqoptimizer, params)
-
-print(tu.__dict__)
+# get acquisition optima
+acq_optima = tu.get()
+print('acq_optima: {}'.format(acq_optima))
