@@ -5,7 +5,7 @@ Miscellaneous utilities.
 from argparse import Namespace
 
 
-def dict_to_namespace(params)
+def dict_to_namespace(params):
     """
     If params is a dict, convert it to a Namespace, and return it.
     
