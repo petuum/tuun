@@ -214,7 +214,8 @@ class AcqFunction:
         """Calls to post then gen_list"""
         post_list = [self.model.post(s) for s in range(nsamp)]
         if 'nsamp' in getfullargspec(self.model.gen_list).args:
-            return self.model.gen_list(x_list, post_list[0], 0, nsamp) #### TODO: fix this given a gen_list with z_is_list option
+            # TODO: fix next line, given a gen_list with z_is_list option
+            return self.model.gen_list(x_list, post_list[0], 0, nsamp)
         else:
             samp_list = [self.model.gen_list(x_list, z, s) for s, z in
                          enumerate(post_list)]

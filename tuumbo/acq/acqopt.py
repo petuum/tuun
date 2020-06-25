@@ -77,7 +77,8 @@ class AcqOptimizer:
         if domain is None:
             # Set domain defaults based on data
 
-            # TODO: base this off of the data, instead of just setting to 1D with arbitrary range
+            # TODO: base next line off of the data, instead of just setting to
+            # a 1d domain with arbitrary range
             domain_params = Namespace(dom_str='real', min_max=[(-10, 10)])
 
             self.domain = get_domain_from_config(domain_params)
@@ -111,8 +112,8 @@ class AcqOptimizer:
     def optimize(self, acqfunction, data=None):
         """Optimize acqfunction.acqf(x) over x in domain"""
 
-        # TODO: make acqfunction callable, and/or replace acqmap with acqf everywhere
-        # TODO: replace dom below with self.domain ?
+        # TODO: make acqfunction callable, and/or replace acqmap with acqf
+        # TODO: replace dom below with self.domain?
         acqmap = acqfunction.acqf
         dom = self.domain
 
