@@ -15,7 +15,6 @@ except:
 # Stan models
 try:
     from .gp_stan import StanGp
-    from .gp_stan_distmat import StanDistmatGp
 except:
     pass
 
