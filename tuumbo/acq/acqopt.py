@@ -109,18 +109,18 @@ class AcqOptimizer:
         if not hasattr(self.params, 'n_opt'): self.params.n_opt = 1
 
     def optimize(self, acqfunction, data=None):
-        """Optimize acqfunction.acqf(x) over x in domain"""
+        """Optimize acqfunction over x in domain"""
         if data is None or data.x == []:
             return self.domain.unif_rand_sample(1)[0]
         else:
             if self.params.opt_str=='rand':
-                return self.optimize_rand(self.domain, acqfunction.acqf)
+                return self.optimize_rand(self.domain, acqfunction)
             elif self.params.opt_str=='mutate':
-                return self.optimize_mutate(self.domain, acqfunction.acqf, data)
+                return self.optimize_mutate(self.domain, acqfunction, data)
             elif self.params.opt_str=='rand_seq':
-                return self.optimize_rand_seq(self.domain, acqfunction.acqf)
+                return self.optimize_rand_seq(self.domain, acqfunction)
             elif self.params.opt_str=='ea':
-                return self.optimize_ea(self.domain, acqfunction.acqf, data)
+                return self.optimize_ea(self.domain, acqfunction, data)
 
     def optimize_rand(self, dom, acqmap):
         """Optimize acqmap(x) over domain via random search"""

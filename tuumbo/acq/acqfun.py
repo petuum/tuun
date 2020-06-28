@@ -82,7 +82,9 @@ class AcqFunction:
             True, gives a list of xin as input to acqfunction).
         """
         if data is None or data.x == []:
-            self.acqf = None
+            # If there is no data, do nothing (don't set self.acqf)
+            pass
+
         else:
             self.data = self.convert_data(data)
             self.model = model
@@ -96,6 +98,10 @@ class AcqFunction:
             # Set self.acqf
             self.set_pred_list_map(xin_is_list)
             self.acqf = self.acqmap_list if xin_is_list else self.acqmap_single
+
+    def __call__(self, x):
+        """Class is callable and returns self.acqf(x)."""
+        return self.acqf(x)
 
     def convert_data(self, data):
         """
