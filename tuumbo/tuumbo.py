@@ -18,8 +18,8 @@ class Tuumbo:
     Class to carry out tuumbo: tuning and uncertainty-model-based optimization.
     """
 
-    def __init__(self, data, model=None, acqfunction=None, acqoptimizer=None,
-                 params=None, verbose=True, seed=None):
+    def __init__(self, data=None, model=None, acqfunction=None,
+                 acqoptimizer=None, params=None, verbose=True, seed=None):
         """
         Parameters
         ----------
