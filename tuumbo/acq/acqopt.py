@@ -1,6 +1,5 @@
 """
 Classes to perform acquisition function optimization.
--- willie@cs.cmu.edu
 """
 
 from argparse import Namespace

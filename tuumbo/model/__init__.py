@@ -1,6 +1,5 @@
 """
 Code for probabilistic programming language models for tuumbo.
--- willie@cs.cmu.edu
 """
 
 from .gp_simple import SimpleGp
