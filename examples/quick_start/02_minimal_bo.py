@@ -1,5 +1,8 @@
 from tuumbo import Tuumbo, RealDomain, AcqOptimizer, SimpleGp
 
+# define dataset
+data = {'x': [], 'y': []}
+
 # define model
 model = SimpleGp({'ls': 1.5, 'alpha': 2., 'sigma': 1e-5})
 
@@ -8,9 +11,6 @@ acqfunction = {'acq_str': 'ucb'}
 
 # define acqoptimizer
 acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
-
-# define initial dataset
-data = {'x': [], 'y': []}
 
 # define tuumbo
 tu = Tuumbo(data, model, acqfunction, acqoptimizer)
