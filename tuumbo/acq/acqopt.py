@@ -59,7 +59,7 @@ class AcqOptimizer:
         # Set defaults
         self.params = Namespace()
         self.params.opt_str = getattr(params, 'opt_str', 'rand')
-        self.params.max_iter = getattr(params, 'max_iter', 1000)
+        self.params.max_iter = getattr(params, 'max_iter', 100)
         self.params.n_opt = getattr(params, 'n_opt', 1)
 
     def set_domain(self, domain):
@@ -100,7 +100,6 @@ class AcqOptimizer:
 
     def setup_optimize(self):
         """Setup for self.optimize method"""
-
         # Set self.xin_is_list
         batch_opt_str_tup = ('rand', 'mutate')
         opt_str = getattr(self.params, 'opt_str', '')
@@ -111,20 +110,17 @@ class AcqOptimizer:
 
     def optimize(self, acqfunction, data=None):
         """Optimize acqfunction.acqf(x) over x in domain"""
-
-        # TODO: make acqfunction callable, and/or replace acqmap with acqf
-        # TODO: replace dom below with self.domain?
-        acqmap = acqfunction.acqf
-        dom = self.domain
-
-        if self.params.opt_str=='rand':
-            return self.optimize_rand(dom, acqmap)
-        elif self.params.opt_str=='mutate':
-            return self.optimize_mutate(dom, acqmap, data)
-        elif self.params.opt_str=='rand_seq':
-            return self.optimize_rand_seq(dom, acqmap)
-        elif self.params.opt_str=='ea':
-            return self.optimize_ea(dom, acqmap, data)
+        if data is None or data.x == []:
+            return self.domain.unif_rand_sample(1)[0]
+        else:
+            if self.params.opt_str=='rand':
+                return self.optimize_rand(self.domain, acqfunction.acqf)
+            elif self.params.opt_str=='mutate':
+                return self.optimize_mutate(self.domain, acqfunction.acqf, data)
+            elif self.params.opt_str=='rand_seq':
+                return self.optimize_rand_seq(self.domain, acqfunction.acqf)
+            elif self.params.opt_str=='ea':
+                return self.optimize_ea(self.domain, acqfunction.acqf, data)
 
     def optimize_rand(self, dom, acqmap):
         """Optimize acqmap(x) over domain via random search"""

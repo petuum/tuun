@@ -69,15 +69,15 @@ class Tuumbo:
 
     def set_data(self, data):
         """Set self.data, the dataset to be modeled."""
+        data = copy.deepcopy(data)
         data = dict_to_namespace(data)
 
         if data is None:
             data = Namespace()
 
         if not hasattr(data, 'x') and not hasattr(data, 'y'):
-            # TODO: once this code supports empty data, set data.x = [] and
-            # data.y = [].
-            pass
+            data.x = []
+            data.y = []
 
         if not hasattr(data, 'x') or not hasattr(data, 'y'):
             raise Exception('Input data must contain lists x and y')

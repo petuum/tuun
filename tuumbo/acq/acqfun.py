@@ -81,18 +81,21 @@ class AcqFunction:
             appropriate acqfunction (e.g. acqoptimizer.xin_is_list, which, if
             True, gives a list of xin as input to acqfunction).
         """
-        self.data = self.convert_data(data)
-        self.model = model
+        if data is None or data.x == []:
+            self.acqf = None
+        else:
+            self.data = self.convert_data(data)
+            self.model = model
 
-        # Run inf
-        self.run_inf()
+            # Run inf
+            self.run_inf()
 
-        # Check for attributes in acqoptimizer
-        xin_is_list = getattr(acqoptimizer, 'xin_is_list', False)
-        
-        # Set self.acqf
-        self.set_pred_list_map(xin_is_list)
-        self.acqf =  self.acqmap_list if xin_is_list else self.acqmap_single
+            # Check for attributes in acqoptimizer
+            xin_is_list = getattr(acqoptimizer, 'xin_is_list', False)
+
+            # Set self.acqf
+            self.set_pred_list_map(xin_is_list)
+            self.acqf = self.acqmap_list if xin_is_list else self.acqmap_single
 
     def convert_data(self, data):
         """
