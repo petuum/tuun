@@ -148,7 +148,7 @@ class Tuumbo:
         mp_return_dict = mp_manager.dict()
 
         subseed = np.random.randint(13337)
-        proc = multiprocessing.Process(target=mp_acq_optimize,
+        proc = multiprocessing.Process(target=self.mp_acq_optimize,
                                        args=(self.data,
                                              self.model,
                                              self.acqfunction,
@@ -161,23 +161,22 @@ class Tuumbo:
 
         return acq_optima
 
+    def mp_acq_optimize(self, data, model, acqfunction, acqoptimizer,
+                        return_dict, seed=None):
+        """Acquisition optimization for use in multiprocessing."""
+        # Set random seed
+        if seed is not None:
+            np.random.seed(seed)
+
+        # Setup acqfunction
+        acqfunction.setup_function(data, model, acqoptimizer)
+
+        # Optimize acqfunction
+        acq_optima = acqoptimizer.optimize(acqfunction, data)
+
+        # Add acq_optima to return_dict
+        return_dict['acq_optima'] = acq_optima
+
     def print_str(self):
         """Print a description string."""
         print('*Tuumbo with params={}'.format(self.params))
-
-
-def mp_acq_optimize(data, model, acqfunction, acqoptimizer, return_dict,
-                    seed=None):
-    """Acquisition optimization via multiprocessing."""
-    # Set random seed
-    if seed is not None:
-        np.random.seed(seed)
-
-    # Setup acqfunction
-    acqfunction.setup_function(data, model, acqoptimizer)
-
-    # Optimize acqfunction
-    acq_optima = acqoptimizer.optimize(acqfunction, data)
-
-    # Add acq_optima to return_dict
-    return_dict['acq_optima'] = acq_optima
