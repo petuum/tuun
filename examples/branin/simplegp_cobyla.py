@@ -18,7 +18,7 @@ acqfunction = {'acq_str': 'ei', 'n_gen': 500}
 acqoptimizer = CobylaAcqOptimizer({'rand_every': 4}, get_branin_domain())
 
 # define tuumbo
-tu = Tuumbo(data, model, acqfunction, acqoptimizer)
+tu = Tuumbo(data, model, acqfunction, acqoptimizer, seed=11)
 
 # BO loop
 for i in range(50):
