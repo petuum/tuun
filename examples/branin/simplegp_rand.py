@@ -33,4 +33,4 @@ for i in range(50):
 
     # Print iter info
     bsf = min(data['y'])
-    print('iter: {},\tx: {},\ty: {:.4f},\tBSF: {:.4f}'.format(i, x, y, bsf))
+    print('i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(i, x, y, bsf))

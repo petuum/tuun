@@ -31,4 +31,5 @@ for i in range(30):
     tu.set_data(data)
 
     # Print iter info
-    print('iter: {}, x: {}, y: {}'.format(i, x, y))
+    bsf = min(data['y'])
+    print('i: {},    x: {:.4f},\ty: {:.4f},\tBSF: {:.4f}'.format(i, x, y, bsf))

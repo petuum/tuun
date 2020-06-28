@@ -13,7 +13,7 @@ from .acq.acqfun import get_acqfunction_from_config
 from .acq.acqopt import get_acqoptimizer_from_config
 
 
-np.set_printoptions(precision=3)
+np.set_printoptions(precision=3, suppress=True)
 
 
 class Tuumbo:
