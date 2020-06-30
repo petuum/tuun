@@ -1,4 +1,4 @@
-from tuun import Tuun, RealDomain, SimpleGp
+from tuun import Tuun, SimpleGp
 from examples.branin.branin import branin, get_branin_domain
 from examples.branin.acqopt_spo import CobylaAcqOptimizer
 

@@ -1,4 +1,4 @@
-from tuun import Tuun, RealDomain, AcqOptimizer, StanGp
+from tuun import Tuun, AcqOptimizer, StanGp
 from examples.branin.branin import branin, get_branin_domain
 
 # define dataset

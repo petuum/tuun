@@ -1,4 +1,4 @@
-from tuun import Tuun, RealDomain, AcqOptimizer, SimpleGp
+from tuun import Tuun, AcqOptimizer, SimpleGp
 
 # define dataset
 data = {'x': [], 'y': []}
