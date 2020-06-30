@@ -6,8 +6,8 @@ from argparse import Namespace
 import numpy as np
 from scipy.optimize import minimize
 
-from tuumbo.acq.acqopt import AcqOptimizer
-from tuumbo.util.misc_util import dict_to_namespace
+from tuun.acq.acqopt import AcqOptimizer
+from tuun.util.misc_util import dict_to_namespace
 
 
 class SpoAcqOptimizer(AcqOptimizer):

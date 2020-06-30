@@ -1,5 +1,5 @@
-# tuumbo
-Tuning and Uncertainty-Model-Based Optimization
+# tuun
+Tuning via Uncertainty Modeling
 
 
 ## Installation

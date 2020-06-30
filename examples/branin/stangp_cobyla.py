@@ -1,4 +1,4 @@
-from tuumbo import Tuumbo, RealDomain, StanGp
+from tuun import Tuun, RealDomain, StanGp
 from examples.branin.branin import branin, get_branin_domain
 from examples.branin.acqopt_spo import CobylaAcqOptimizer
 
@@ -15,8 +15,8 @@ acqfunction = {'acq_str': 'ei', 'n_gen': 500}
 # define acqoptimizer
 acqoptimizer = CobylaAcqOptimizer({'rand_every': 4}, get_branin_domain())
 
-# define tuumbo
-tu = Tuumbo(data, model, acqfunction, acqoptimizer, seed=11)
+# define tuun
+tu = Tuun(data, model, acqfunction, acqoptimizer, seed=11)
 
 # define function
 f = branin

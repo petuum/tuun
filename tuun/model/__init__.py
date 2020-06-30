@@ -1,5 +1,5 @@
 """
-Code for probabilistic programming language models for tuumbo.
+Code for probabilistic programming language models for tuun.
 """
 
 from .gp_simple import SimpleGp

@@ -1,11 +1,11 @@
 """
-Code for tuumbo.
+Code for tuun.
 """
 
 from .acq import AcqFunction, AcqOptimizer
 from .domain import RealDomain, ListDomain
 from .model import SimpleGp
-from .tuumbo import Tuumbo
+from .tuun import Tuun
 
 
 # Stan models
@@ -20,4 +20,4 @@ __all__ = ['AcqFunction',
            'ListDomain',
            'RealDomain',
            'SimpleGp',
-           'Tuumbo']
+           'Tuun']

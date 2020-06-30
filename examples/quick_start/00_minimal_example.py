@@ -1,4 +1,4 @@
-from tuumbo import Tuumbo, RealDomain, AcqOptimizer, SimpleGp
+from tuun import Tuun, RealDomain, AcqOptimizer, SimpleGp
 
 # define initial dataset
 data = {'x': [0., 1., 2.], 'y': [6., 3., 4.]}
@@ -12,8 +12,8 @@ acqfunction = {'acq_str': 'ei'}
 # define acqoptimizer
 acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 
-# define tuumbo
-tu = Tuumbo(data, model, acqfunction, acqoptimizer)
+# define tuun
+tu = Tuun(data, model, acqfunction, acqoptimizer)
 
 # get acquisition optima
 acq_optima = tu.get()

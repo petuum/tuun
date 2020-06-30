@@ -1,4 +1,4 @@
-from tuumbo import Tuumbo, RealDomain, AcqOptimizer, SimpleGp
+from tuun import Tuun, RealDomain, AcqOptimizer, SimpleGp
 from examples.branin.branin import branin, get_branin_domain
 
 # define dataset
@@ -13,8 +13,8 @@ acqfunction = {'acq_str': 'ei', 'n_gen': 500}
 # define acqoptimizer
 acqoptimizer = AcqOptimizer(domain=get_branin_domain())
 
-# define tuumbo
-tu = Tuumbo(data, model, acqfunction, acqoptimizer, seed=11)
+# define tuun
+tu = Tuun(data, model, acqfunction, acqoptimizer, seed=11)
 
 # define function
 f = branin

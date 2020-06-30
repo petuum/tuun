@@ -4,10 +4,10 @@ Code to compile stan models
 
 import argparse
 
-import tuumbo.model.stan.gp as gp
-import tuumbo.model.stan.gp_fixedsig as gp_fixedsig
-#import tuumbo.model.stan.gp_distmat as gp_distmat
-#import tuumbo.model.stan.gp_distmat_fixedsig as gp_distmat_fixedsig
+import tuun.model.stan.gp as gp
+import tuun.model.stan.gp_fixedsig as gp_fixedsig
+#import tuun.model.stan.gp_distmat as gp_distmat
+#import tuun.model.stan.gp_distmat_fixedsig as gp_distmat_fixedsig
 
 
 def main(model_str):

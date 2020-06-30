@@ -5,8 +5,8 @@ Branin synthetic benchmark function.
 from argparse import Namespace
 import numpy as np
 
-from tuumbo.domain.real import RealDomain
-from tuumbo.domain.list import ListDomain
+from tuun.domain.real import RealDomain
+from tuun.domain.list import ListDomain
 
 
 def branin(x):

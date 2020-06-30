@@ -1,5 +1,5 @@
 """
-Classes for tuumbo.
+Classes for tuun.
 """
 
 import time
@@ -16,9 +16,9 @@ from .acq.acqopt import get_acqoptimizer_from_config
 np.set_printoptions(precision=3, suppress=True)
 
 
-class Tuumbo:
+class Tuun:
     """
-    Class to carry out tuumbo: tuning and uncertainty-model-based optimization.
+    Class to carry out tuun: tuning and uncertainty-model-based optimization.
     """
 
     def __init__(self, data=None, model=None, acqfunction=None,
@@ -38,7 +38,7 @@ class Tuumbo:
             AcqOptimizer instance or Namespace/dict of parameters. Default is
             None, which uses random search.
         params : Namespace_or_dict
-            Namespace or dict of additional parameters for tuumbo.
+            Namespace or dict of additional parameters for tuun.
         verbose : bool
             If True, print description string.
         seed : int
@@ -65,7 +65,7 @@ class Tuumbo:
             self.seed = -1
 
     def set_params(self, params):
-        """Set self.params, the parameters for tuumbo."""
+        """Set self.params, the parameters for tuun."""
         params = dict_to_namespace(params)
         self.params = Namespace()
         self.params.n_rep = getattr(params, 'n_rep', 1)
@@ -88,7 +88,7 @@ class Tuumbo:
         self.data = data
 
     def set_model(self, model):
-        """Set self.model, the model used by tuumbo."""
+        """Set self.model, the model used by tuun."""
         self.model = model
 
     def set_acqfunction(self, acqfunction):
@@ -182,4 +182,4 @@ class Tuumbo:
 
     def print_str(self):
         """Print a description string."""
-        print('*Tuumbo with params={}'.format(self.params))
+        print('*Tuun with params={}'.format(self.params))
