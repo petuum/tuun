@@ -1,8 +1,8 @@
 ![tuun](docs/images/tuun_header.png)
 
 **TUUN** is a toolkit for efficient hyperparameter tuning via uncertainty
-modeling, with a focus on flexible model choice and use in distributed
-settings.
+modeling, with a focus on flexible model choice, scalability, and use in
+distributed settings.
 
 ## Installation
 

@@ -5,8 +5,8 @@ Classes for Cartesian product domains.
 from argparse import Namespace
 import numpy as np
 
-from probo.dom.real import RealDomain
-from probo.dom.integral import IntegralDomain
+from .real import RealDomain
+from .integral import IntegralDomain
 
 
 class ProductDomain:
@@ -45,13 +45,13 @@ class ProductDomain:
         return self.domain_list
 
     def set_verbose(self, verbose):
-        """Set verbose options"""
+        """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
             self.print_str()
 
     def is_in_domain(self, pt):
-        """Check if pt is in domain, and return True or False"""
+        """Check if pt is in domain, and return True or False."""
 
         bool_list = [domain.is_in_domain(block) for block, domain in zip(pt,
                      self.domain_list)]
@@ -59,13 +59,13 @@ class ProductDomain:
         return ret
 
     def unif_rand_sample(self, n=1):
-        """Draws a sample uniformly at random from domain"""
+        """Draws a sample uniformly at random from domain."""
         sample_list = [dom.unif_rand_sample(n) for dom in self.domain_list]
         ret = [list(x) for x in zip(*sample_list)]
         return ret
 
     def print_str(self):
-        """Print a description string"""
+        """Print a description string."""
         print('*ProductDomain with domain_list:')
         for idx, domain in enumerate(self.domain_list):
             #print('   Sub-domain {}: '.format(idx+1), end='')
