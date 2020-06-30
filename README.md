@@ -1,6 +1,6 @@
-# tuun
-**Tu**ning via **Un**certainty Modeling
+![tuun](docs/images/tuun_header.png)
 
+**TUUN:** **Tu**ning via **Un**certainty Modeling.
 
 ## Installation
 
