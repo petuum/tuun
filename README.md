@@ -1,5 +1,5 @@
 # tuun
-Tuning via Uncertainty Modeling
+**Tu**ning via **Un**certainty Modeling
 
 
 ## Installation
@@ -11,3 +11,6 @@ Dependencies:
 * matplotlib
 * scikit-learn
 * pytest
+
+Certain models in [`tuun/models/`](tuun/model/) may require [additional
+dependencies](tuun/model/README.md).
