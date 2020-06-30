@@ -1,6 +1,5 @@
-from tuun import Tuun, StanGp
+from tuun import Tuun, StanGp, CobylaAcqOptimizer
 from examples.branin.branin import branin, get_branin_domain
-from examples.branin.acqopt_spo import CobylaAcqOptimizer
 
 # define dataset
 data = {'x': [], 'y': []}

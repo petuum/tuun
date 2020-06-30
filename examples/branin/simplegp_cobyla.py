@@ -1,6 +1,5 @@
-from tuun import Tuun, SimpleGp
+from tuun import Tuun, SimpleGp, CobylaAcqOptimizer
 from examples.branin.branin import branin, get_branin_domain
-from examples.branin.acqopt_spo import CobylaAcqOptimizer
 
 # define function
 f = branin

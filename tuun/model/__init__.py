@@ -1,5 +1,5 @@
 """
-Code for probabilistic programming language models for tuun.
+Models for use in tuun.
 """
 
 from .gp_simple import SimpleGp
@@ -23,13 +23,3 @@ try:
     from .bnn_pyro import PyroBnn
 except:
     pass
-
-
-__all__ = ['SimpleGp']
-#__all__ = ['SimpleGp',
-           #'SimpleDistmatGp',
-           #'PyroBnn',
-           #'SklearnHpnn',
-           #'SklearnPenn',
-           #'StanGp',
-           #'StanDistmatGp']
