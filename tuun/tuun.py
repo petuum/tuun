@@ -18,7 +18,7 @@ np.set_printoptions(precision=3, suppress=True)
 
 class Tuun:
     """
-    Class to carry out tuun: tuning and uncertainty-model-based optimization.
+    Class to carry out tuning via uncertainty modeling.
     """
 
     def __init__(
