@@ -11,8 +11,8 @@ Tuun requires Python 3.6+. To install Python dependencies, run:
 $ pip install -r requirements/requirements.txt
 ```
 
-Certain models in [`tuun/models/`](tuun/model/) may require [additional
-installation](tuun/model/README.md).
+Certain models in [`tuun/models/`](tuun/models/) may require [additional
+installation](tuun/models/README.md).
 
 
 ## Example
