@@ -17,15 +17,14 @@ def get_model(recompile=False, print_status=True):
     if recompile:
         starttime = time.time()
         model = pystan.StanModel(model_code=get_model_code())
-        buildtime = time.time()-starttime
-        with open(model_file_str,'wb') as f:
+        buildtime = time.time() - starttime
+        with open(model_file_str, 'wb') as f:
             pickle.dump(model, f)
         if print_status:
-            print('*Time taken to compile = '+ str(buildtime) +
-                  ' seconds.\n-----')
+            print('*Time taken to compile = ' + str(buildtime) + ' seconds.\n-----')
             print('*Stan model saved in file ' + model_file_str + '.\n-----')
     else:
-        model = pickle.load(open(model_file_str,'rb'))
+        model = pickle.load(open(model_file_str, 'rb'))
         if print_status:
             print('*Stan model loaded from file {}'.format(model_file_str))
     return model
@@ -61,6 +60,7 @@ def get_model_code():
         y ~ multi_normal_cholesky(rep_vector(0, N), L_cov);
     }
     """
+
 
 if __name__ == '__main__':
     get_model()

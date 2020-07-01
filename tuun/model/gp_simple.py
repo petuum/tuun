@@ -25,7 +25,8 @@ class SimpleGp:
             If True, print description string.
         """
         self.set_params(params)
-        if verbose: self.print_str()
+        if verbose:
+            self.print_str()
 
     def set_params(self, params):
         """Set self.params, the parameters for this model."""
@@ -46,9 +47,11 @@ class SimpleGp:
     def inf(self, data):
         """Set data, run inference, update self.sample_list."""
         self.set_data(data)
-        self.sample_list = [Namespace(ls=self.params.ls,
-                                      alpha=self.params.alpha,
-                                      sigma=self.params.sigma)]
+        self.sample_list = [
+            Namespace(
+                ls=self.params.ls, alpha=self.params.alpha, sigma=self.params.sigma
+            )
+        ]
 
     def post(self, s):
         """Return one posterior sample."""
@@ -122,12 +125,21 @@ class SimpleGp:
         list
             A list of len=len(input_list) of numpy ndarrays shape=(nsamp, 1).
         """
-        postmu, postcov = gp_post(self.data.X, self.data.y, input_list, hp.ls,
-                                  hp.alpha, hp.sigma, self.params.kernel)
+        postmu, postcov = gp_post(
+            self.data.X,
+            self.data.y,
+            input_list,
+            hp.ls,
+            hp.alpha,
+            hp.sigma,
+            self.params.kernel,
+        )
         single_post_sample = sample_mvn(postmu, postcov, 1).reshape(-1)
-        pred_list = [single_post_sample for _ in range(nsamp)] #### TODO: instead of duplicating this TS,
-                                                               #### sample nsamp times from generative
-                                                               #### process (given/conditioned-on this TS)
+        pred_list = [
+            single_post_sample for _ in range(nsamp)
+        ]  #### TODO: instead of duplicating this TS,
+        #### sample nsamp times from generative
+        #### process (given/conditioned-on this TS)
         return list(np.stack(pred_list).T)
 
     def sample_gp_post_pred(self, nsamp, input_list, hp, full_cov=False):
@@ -150,15 +162,26 @@ class SimpleGp:
         list
             A list of len=len(input_list) of numpy ndarrays shape=(nsamp, 1).
         """
-        postmu, postcov = gp_post(self.data.X, self.data.y, input_list,
-                                  hp.ls, hp.alpha, hp.sigma,
-                                  self.params.kernel, full_cov)
+        postmu, postcov = gp_post(
+            self.data.X,
+            self.data.y,
+            input_list,
+            hp.ls,
+            hp.alpha,
+            hp.sigma,
+            self.params.kernel,
+            full_cov,
+        )
         if full_cov:
             ppred_list = list(sample_mvn(postmu, postcov, nsamp))
         else:
-            ppred_list = list(np.random.normal(postmu.reshape(-1,),
-                                               postcov.reshape(-1,),
-                                               size=(nsamp, len(input_list))))
+            ppred_list = list(
+                np.random.normal(
+                    postmu.reshape(-1,),
+                    postcov.reshape(-1,),
+                    size=(nsamp, len(input_list)),
+                )
+            )
 
         return list(np.stack(ppred_list).T)
 

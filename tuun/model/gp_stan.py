@@ -38,10 +38,10 @@ class StanGp:
         self.params = Namespace()
         self.params.ndimx = params.ndimx
         self.params.model_str = getattr(params, 'model_str', 'optfixedsig')
-        self.params.ig1 = getattr(params, 'ig1', 4.)
-        self.params.ig2 = getattr(params, 'ig2', 3.)
-        self.params.n1 = getattr(params, 'n1', 1.)
-        self.params.n2 = getattr(params, 'n2', 1.)
+        self.params.ig1 = getattr(params, 'ig1', 4.0)
+        self.params.ig2 = getattr(params, 'ig2', 3.0)
+        self.params.n1 = getattr(params, 'n1', 1.0)
+        self.params.n2 = getattr(params, 'n2', 1.0)
         self.params.sigma = getattr(params, 'sigma', 1e-5)
         self.params.niter = getattr(params, 'niter', 70)
         self.params.kernel = getattr(params, 'kernel', kern_exp_quad)
@@ -58,12 +58,14 @@ class StanGp:
 
     def get_model(self):
         """Returns GP stan model."""
-        if self.params.model_str=='optfixedsig' or \
-            self.params.model_str=='sampfixedsig':
+        if (
+            self.params.model_str == 'optfixedsig'
+            or self.params.model_str == 'sampfixedsig'
+        ):
             return gpstan_fixedsig.get_model(print_status=self.verbose)
-        elif self.params.model_str=='opt' or self.params.model_str=='samp':
+        elif self.params.model_str == 'opt' or self.params.model_str == 'samp':
             return gpstan.get_model(print_status=self.verbose)
-        elif self.params.model_str=='fixedparam':
+        elif self.params.model_str == 'fixedparam':
             return None
 
     def set_data(self, data):
@@ -126,106 +128,132 @@ class StanGp:
             A list with len=len(x_list) of numpy ndarrays, each with
             shape=(nsamp,).
         """
-        pred_list = self.sample_gp_post_pred(nsamp, x_list, full_cov=True,
-                                             nloop=np.min([50, nsamp]))
+        pred_list = self.sample_gp_post_pred(
+            nsamp, x_list, full_cov=True, nloop=np.min([50, nsamp])
+        )
         return pred_list
 
     def infer_post_and_update_samples(self, seed=543210, print_result=False):
         """Update self.sample_list."""
         data_dict = self.get_stan_data_dict()
-        if self.params.model_str=='optfixedsig' or \
-           self.params.model_str=='opt':
+        if self.params.model_str == 'optfixedsig' or self.params.model_str == 'opt':
 
             def run_stan_optimizing(stan_opt_str):
                 with suppress_stdout_stderr():
-                    return self.model.optimizing(data_dict,
-                                                 iter=self.params.niter,
-                                                 seed=seed,
-                                                 as_vector=True,
-                                                 algorithm=stan_opt_str)
+                    return self.model.optimizing(
+                        data_dict,
+                        iter=self.params.niter,
+                        seed=seed,
+                        as_vector=True,
+                        algorithm=stan_opt_str,
+                    )
 
             try:
                 stanout = run_stan_optimizing('LBFGS')
             except RuntimeError:
-                print('\t*Stan LBFGS optimizer failed. Running Newton ' + 
-                      'optimizer instead.')
+                print(
+                    '\t*Stan LBFGS optimizer failed. Running Newton '
+                    + 'optimizer instead.'
+                )
                 stanout = run_stan_optimizing('Newton')
 
-        elif self.params.model_str=='samp' or \
-             self.params.model_str=='sampfixedsig':
+        elif self.params.model_str == 'samp' or self.params.model_str == 'sampfixedsig':
             with suppress_stdout_stderr():
-                stanout = self.model.sampling(data_dict,
-                                              iter=self.params.niter +
-                                                   self.params.nwarmup,
-                                              warmup=self.params.nwarmup,
-                                              chains=1,
-                                              seed=seed,
-                                              refresh=1000)
+                stanout = self.model.sampling(
+                    data_dict,
+                    iter=self.params.niter + self.params.nwarmup,
+                    warmup=self.params.nwarmup,
+                    chains=1,
+                    seed=seed,
+                    refresh=1000,
+                )
 
-        elif self.params.model_str=='fixedparam':
+        elif self.params.model_str == 'fixedparam':
             stanout = None
 
         self.sample_list = self.get_sample_list_from_stan_out(stanout)
-        if print_result: self.print_inference_result()
+        if print_result:
+            self.print_inference_result()
 
     def get_stan_data_dict(self):
         """Return data dict for stan sampling method."""
-        if self.params.model_str=='optfixedsig' or \
-           self.params.model_str=='sampfixedsig':
-            return {'ig1':self.params.ig1,
-                    'ig2':self.params.ig2,
-                    'n1':self.params.n1,
-                    'n2':self.params.n2,
-                    'sigma':self.params.sigma,
-                    'D':self.params.ndimx,
-                    'N':len(self.data.X),
-                    'x':self.data.X,
-                    'y':self.data.y.flatten()}
-        elif self.params.model_str=='opt' or self.params.model_str=='samp':
-            return {'ig1':self.params.ig1,
-                    'ig2':self.params.ig2,
-                    'n1':self.params.n1,
-                    'n2':self.params.n2,
-                    'n3':self.params.n3,
-                    'n4':self.params.n4,
-                    'D':self.params.ndimx,
-                    'N':len(self.data.X),
-                    'y':self.data.y.flatten(),
-                    'x':self.data.X}
+        if (
+            self.params.model_str == 'optfixedsig'
+            or self.params.model_str == 'sampfixedsig'
+        ):
+            return {
+                'ig1': self.params.ig1,
+                'ig2': self.params.ig2,
+                'n1': self.params.n1,
+                'n2': self.params.n2,
+                'sigma': self.params.sigma,
+                'D': self.params.ndimx,
+                'N': len(self.data.X),
+                'x': self.data.X,
+                'y': self.data.y.flatten(),
+            }
+        elif self.params.model_str == 'opt' or self.params.model_str == 'samp':
+            return {
+                'ig1': self.params.ig1,
+                'ig2': self.params.ig2,
+                'n1': self.params.n1,
+                'n2': self.params.n2,
+                'n3': self.params.n3,
+                'n4': self.params.n4,
+                'D': self.params.ndimx,
+                'N': len(self.data.X),
+                'y': self.data.y.flatten(),
+                'x': self.data.X,
+            }
 
     def get_sample_list_from_stan_out(self, stanout):
         """Convert stan output to sample_list."""
-        if self.params.model_str=='optfixedsig':
-            return [Namespace(ls=stanout['rho'], alpha=stanout['alpha'],
-                              sigma=self.params.sigma)]
-        elif self.params.model_str=='opt':
-            return [Namespace(ls=stanout['rho'], alpha=stanout['alpha'],
-                              sigma=stanout['sigma'])]
-        elif self.params.model_str=='sampfixedsig':
+        if self.params.model_str == 'optfixedsig':
+            return [
+                Namespace(
+                    ls=stanout['rho'], alpha=stanout['alpha'], sigma=self.params.sigma
+                )
+            ]
+        elif self.params.model_str == 'opt':
+            return [
+                Namespace(
+                    ls=stanout['rho'], alpha=stanout['alpha'], sigma=stanout['sigma']
+                )
+            ]
+        elif self.params.model_str == 'sampfixedsig':
             sdict = stanout.extract(['rho', 'alpha'])
-            return [Namespace(ls=sdict['rho'][i], alpha=sdict['alpha'][i],
-                              sigma=self.params.sigma)
-                    for i in range(sdict['rho'].shape[0])]
-        elif self.params.model_str=='samp':
+            return [
+                Namespace(
+                    ls=sdict['rho'][i], alpha=sdict['alpha'][i], sigma=self.params.sigma
+                )
+                for i in range(sdict['rho'].shape[0])
+            ]
+        elif self.params.model_str == 'samp':
             sdict = stanout.extract(['rho', 'alpha', 'sigma'])
-            return [Namespace(ls=sdict['rho'][i], alpha=sdict['alpha'][i],
-                              sigma=sdict['sigma'][i])
-                    for i in range(sdict['rho'].shape[0])]
-        elif self.params.model_str=='fixedparam':
-            return [Namespace(ls=self.params.ls,
-                              alpha=self.params.alpha,
-                              sigma=self.params.sigma)]
+            return [
+                Namespace(
+                    ls=sdict['rho'][i], alpha=sdict['alpha'][i], sigma=sdict['sigma'][i]
+                )
+                for i in range(sdict['rho'].shape[0])
+            ]
+        elif self.params.model_str == 'fixedparam':
+            return [
+                Namespace(
+                    ls=self.params.ls, alpha=self.params.alpha, sigma=self.params.sigma
+                )
+            ]
 
     def print_inference_result(self):
         """Print results of stan inference."""
-        if self.params.model_str=='optfixedsig' or \
-           self.params.model_str=='opt' or \
-           self.params.model_str=='fixedparam':
+        if (
+            self.params.model_str == 'optfixedsig'
+            or self.params.model_str == 'opt'
+            or self.params.model_str == 'fixedparam'
+        ):
             print('*ls pt est = ' + str(self.sample_list[0].ls) + '.')
             print('*alpha pt est = ' + str(self.sample_list[0].alpha) + '.')
             print('*sigma pt est = ' + str(self.sample_list[0].sigma) + '.')
-        elif self.params.model_str=='samp' or \
-             self.params.model_str=='sampfixedsig':
+        elif self.params.model_str == 'samp' or self.params.model_str == 'sampfixedsig':
             ls_arr = np.array([ns.ls for ns in self.sample_list])
             alpha_arr = np.array([ns.alpha for ns in self.sample_list])
             sigma_arr = np.array([ns.sigma for ns in self.sample_list])
@@ -257,21 +285,33 @@ class StanGp:
         """
         x_pred = np.stack(input_list)
         if lv is None:
-            if self.params.model_str=='optfixedsig' or \
-               self.params.model_str=='opt' or \
-               self.params.model_str=='fixedparam':
+            if (
+                self.params.model_str == 'optfixedsig'
+                or self.params.model_str == 'opt'
+                or self.params.model_str == 'fixedparam'
+            ):
                 lv = self.sample_list[0]
-            elif self.params.model_str=='samp' or \
-                 self.params.model_str=='sampfixedsig':
+            elif (
+                self.params.model_str == 'samp'
+                or self.params.model_str == 'sampfixedsig'
+            ):
                 lv = self.sample_list[np.random.randint(len(self.sample_list))]
-        postmu, postcov = gp_post(self.data.X, self.data.y, x_pred, lv.ls,
-                                  lv.alpha, lv.sigma, self.params.kernel)
+        postmu, postcov = gp_post(
+            self.data.X,
+            self.data.y,
+            x_pred,
+            lv.ls,
+            lv.alpha,
+            lv.sigma,
+            self.params.kernel,
+        )
         single_post_sample = sample_mvn(postmu, postcov, 1).reshape(-1)
-        pred_list = [single_post_sample for _ in range(nsamp)] #### TODO: instead of duplicating this TS, sample nsamp times from generative process (given/conditioned-on this TS)
+        pred_list = [
+            single_post_sample for _ in range(nsamp)
+        ]  #### TODO: instead of duplicating this TS, sample nsamp times from generative process (given/conditioned-on this TS)
         return list(np.stack(pred_list).T)
 
-    def sample_gp_post_pred(self, nsamp, input_list, full_cov=False,
-                            nloop=None):
+    def sample_gp_post_pred(self, nsamp, input_list, full_cov=False, nloop=None):
         """
         Sample from GP posterior predictive distribution.
 
@@ -289,31 +329,43 @@ class StanGp:
         list
             A list of len=len(input_list) of numpy ndarrays shape=(nsamp, 1).
         """
-        if self.params.model_str=='optfixedsig' or \
-           self.params.model_str=='opt' or \
-           self.params.model_str=='fixedparam':
+        if (
+            self.params.model_str == 'optfixedsig'
+            or self.params.model_str == 'opt'
+            or self.params.model_str == 'fixedparam'
+        ):
             nloop = 1
             sampids = [0]
-        elif self.params.model_str=='samp' or \
-             self.params.model_str=='sampfixedsig':
+        elif self.params.model_str == 'samp' or self.params.model_str == 'sampfixedsig':
             if nloop is None:
-                nloop=nsamp
+                nloop = nsamp
             nsamp = int(nsamp / nloop)
             sampids = np.random.randint(len(self.sample_list), size=(nloop,))
         ppred_list = []
         for i in range(nloop):
             samp = self.sample_list[sampids[i]]
-            postmu, postcov = gp_post(self.data.X, self.data.y,
-                                      np.stack(input_list), samp.ls,
-                                      samp.alpha, samp.sigma,
-                                      self.params.kernel, full_cov)
+            postmu, postcov = gp_post(
+                self.data.X,
+                self.data.y,
+                np.stack(input_list),
+                samp.ls,
+                samp.alpha,
+                samp.sigma,
+                self.params.kernel,
+                full_cov,
+            )
             if full_cov:
                 ppred_list.extend(list(sample_mvn(postmu, postcov, nsamp)))
             else:
-                ppred_list.extend(list(np.random.normal(postmu.reshape(-1,),
-                                                        postcov.reshape(-1,),
-                                                        size=(nsamp,
-                                                           len(input_list)))))
+                ppred_list.extend(
+                    list(
+                        np.random.normal(
+                            postmu.reshape(-1,),
+                            postcov.reshape(-1,),
+                            size=(nsamp, len(input_list)),
+                        )
+                    )
+                )
         return list(np.stack(ppred_list).T)
 
     def print_str(self):

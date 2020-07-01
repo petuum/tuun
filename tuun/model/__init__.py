@@ -3,7 +3,8 @@ Models for use in tuun.
 """
 
 from .gp_simple import SimpleGp
-#from .gp_distmat import SimpleDistmatGp
+
+# from .gp_distmat import SimpleDistmatGp
 
 # Sklearn models
 try:
