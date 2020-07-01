@@ -47,9 +47,11 @@ class RealDomain(object):
         if pt.shape[0] != self.ndimx:
             ret = False
         else:
-            bool_list = [pt[i] >= self.params.min_max[i][0] and
-                         pt[i] <= self.params.min_max[i][1]
-                         for i in range(self.ndimx)]
+            bool_list = [
+                pt[i] >= self.params.min_max[i][0]
+                and pt[i] <= self.params.min_max[i][1]
+                for i in range(self.ndimx)
+            ]
             ret = False if False in bool_list else True
         return ret
 

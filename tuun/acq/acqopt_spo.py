@@ -13,8 +13,7 @@ from ..util.misc_util import dict_to_namespace
 class SpoAcqOptimizer(AcqOptimizer):
     """AcqOptimizer using algorithms from scipy.optimize."""
 
-    def __init__(self, params=None, domain=None, print_delta=False,
-                 verbose=True):
+    def __init__(self, params=None, domain=None, print_delta=False, verbose=True):
         """
         Parameters
         ----------
@@ -41,13 +40,17 @@ class SpoAcqOptimizer(AcqOptimizer):
             params = Namespace(**params)
 
         self.params = params
-        self.init_str = getattr(params, 'init_str', 'bsf') # options: bsf, bsf_rand, init_opt, topk,
-        self.rand_every = getattr(params, 'rand_every', None) # for bsf
-        self.n_rand = getattr(params, 'n_rand', 1) # for bsf_rand
-        self.k = getattr(params, 'k', 2) # for topk
-        self.max_iter = getattr(params, 'max_iter', 1000) # for spo.minimize
-        self.rhobeg = getattr(params, 'rhobeg', .5) # for spo.minimize (e.g. cobyla)
-        self.n_opt_calls = getattr(params, 'n_opt_calls', 0) # for starting on explicit value
+        self.init_str = getattr(
+            params, 'init_str', 'bsf'
+        )  # options: bsf, bsf_rand, init_opt, topk,
+        self.rand_every = getattr(params, 'rand_every', None)  # for bsf
+        self.n_rand = getattr(params, 'n_rand', 1)  # for bsf_rand
+        self.k = getattr(params, 'k', 2)  # for topk
+        self.max_iter = getattr(params, 'max_iter', 1000)  # for spo.minimize
+        self.rhobeg = getattr(params, 'rhobeg', 0.5)  # for spo.minimize (e.g. cobyla)
+        self.n_opt_calls = getattr(
+            params, 'n_opt_calls', 0
+        )  # for starting on explicit value
 
     def set_verbose(self, verbose):
         """Set verbose options."""
@@ -72,28 +75,29 @@ class SpoAcqOptimizer(AcqOptimizer):
 
         #### TODO: handle case where data is empty
         bsf_point = data.X[data.y.argmin()]
-        
+
         if self.init_str == 'bsf':
             # Initialization with best-so-far strategy
 
-            if self.rand_every is None: self.rand_every = self.n_opt_calls + 1
+            if self.rand_every is None:
+                self.rand_every = self.n_opt_calls + 1
 
             if self.n_opt_calls % self.rand_every == 0:
                 init_point = self.domain.unif_rand_sample()[0]
             else:
                 init_point = bsf_point
 
-            optima = self.run_spo_minimize(self.domain, acqmap, data,
-                                           init_point)
+            optima = self.run_spo_minimize(self.domain, acqmap, data, init_point)
 
         if self.init_str == 'bsf_rand':
             # Initialization with best-so-far and random-sampling strategy
 
-            init_point_list = [bsf_point] + \
-                              self.domain.unif_rand_sample(self.n_rand)
+            init_point_list = [bsf_point] + self.domain.unif_rand_sample(self.n_rand)
 
-            opt_list = [self.run_spo_minimize(self.domain, acqmap, data, ip)
-                       for ip in init_point_list]
+            opt_list = [
+                self.run_spo_minimize(self.domain, acqmap, data, ip)
+                for ip in init_point_list
+            ]
 
             min_idx = np.argmin([acqmap(opt) for opt in opt_list])
             optima = opt_list[min_idx]
@@ -103,16 +107,17 @@ class SpoAcqOptimizer(AcqOptimizer):
             # Initialization with explicit initialization to data.init_opt
 
             init_point = data.init_opt
-            optima = self.run_spo_minimize(self.domain, acqmap, data,
-                                           init_point)
+            optima = self.run_spo_minimize(self.domain, acqmap, data, init_point)
 
         if self.init_str == 'topk':
-            # Initialization to top k best-so-far strategy 
+            # Initialization to top k best-so-far strategy
 
-            idx_list = np.argsort(data.y)[:self.k]
+            idx_list = np.argsort(data.y)[: self.k]
             init_point_list = [data.X[idx] for idx in idx_list]
-            opt_list = [self.run_spo_minimize(self.domain, acqmap, data, ip)
-                        for ip in init_point_list]
+            opt_list = [
+                self.run_spo_minimize(self.domain, acqmap, data, ip)
+                for ip in init_point_list
+            ]
 
             min_idx = np.argmin([acqmap(opt) for opt in opt_list])
             optima = opt_list[min_idx]
@@ -130,8 +135,11 @@ class SpoAcqOptimizer(AcqOptimizer):
         init_acq = acqmap(init_point)
         final_acq = acqmap(optima)
         acq_delta = final_acq - init_acq
-        print(('  Acq delta: {:.7f} = (final acq - init acq) ' +
-               '[spo]').format(acq_delta))
+        print(
+            ('  Acq delta: {:.7f} = (final acq - init acq) ' + '[spo]').format(
+                acq_delta
+            )
+        )
 
     def run_spo_minimize(self, real_dom, acqmap, data, init_point):
         """Use scipy.optimize to minimize acqmap over a RealDomain."""
@@ -139,10 +147,8 @@ class SpoAcqOptimizer(AcqOptimizer):
         # Set constraints
         constraints = []
         for i, tup in enumerate(real_dom.params.min_max):
-            lo = {'type': 'ineq', 'fun': (lambda x,i: x[i]-tup[0]),
-                  'args': (i,)}
-            up = {'type': 'ineq', 'fun': (lambda x,i : tup[1]-x[i]),
-                  'args': (i,)}
+            lo = {'type': 'ineq', 'fun': (lambda x, i: x[i] - tup[0]), 'args': (i,)}
+            up = {'type': 'ineq', 'fun': (lambda x, i: tup[1] - x[i]), 'args': (i,)}
             constraints.append(lo)
             constraints.append(up)
 
@@ -162,7 +168,7 @@ class SpoAcqOptimizer(AcqOptimizer):
                 optima[i] = tup[0]
             elif optima[i] > tup[1]:
                 optima[i] = tup[1]
-        
+
         return optima
 
     def print_str(self):
@@ -175,11 +181,18 @@ class CobylaAcqOptimizer(SpoAcqOptimizer):
 
     def call_minimize(self, acqmap, init_point, constraints):
         """Call minimize function."""
-        return minimize(acqmap, x0=init_point, constraints=constraints,
-                        method='COBYLA', options={'rhobeg': self.rhobeg,
-                                                  'maxiter': self.max_iter,
-                                                  'disp': False,
-                                                  'catol': 0.0})
+        return minimize(
+            acqmap,
+            x0=init_point,
+            constraints=constraints,
+            method='COBYLA',
+            options={
+                'rhobeg': self.rhobeg,
+                'maxiter': self.max_iter,
+                'disp': False,
+                'catol': 0.0,
+            },
+        )
 
     def print_str(self):
         """Print a description string."""
@@ -194,8 +207,12 @@ class NelderMeadAcqOptimizer(SpoAcqOptimizer):
 
     def call_minimize(self, acqmap, init_point, constraints):
         """Call minimize function."""
-        return minimize(acqmap, x0=init_point, method='Nelder-Mead',
-                        options={'adaptive': True, 'maxiter': self.max_iter})
+        return minimize(
+            acqmap,
+            x0=init_point,
+            method='Nelder-Mead',
+            options={'adaptive': True, 'maxiter': self.max_iter},
+        )
 
     def print_str(self):
         """Print a description string."""

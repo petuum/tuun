@@ -21,8 +21,16 @@ class Tuun:
     Class to carry out tuun: tuning and uncertainty-model-based optimization.
     """
 
-    def __init__(self, data=None, model=None, acqfunction=None,
-                 acqoptimizer=None, params=None, verbose=True, seed=None):
+    def __init__(
+        self,
+        data=None,
+        model=None,
+        acqfunction=None,
+        acqoptimizer=None,
+        params=None,
+        verbose=True,
+        seed=None,
+    ):
         """
         Parameters
         ----------
@@ -106,8 +114,7 @@ class Tuun:
         if acqfunction is None:
             self.acqfunction = get_acqfunction_from_config(None, verbose=True)
         elif isinstance(acqfunction, Namespace):
-            self.acqfunction = get_acqfunction_from_config(acqfunction,
-                                                           verbose=True)
+            self.acqfunction = get_acqfunction_from_config(acqfunction, verbose=True)
         else:
             # If not Namespace or dict, treat as AcqFunction instance
             self.acqfunction = acqfunction
@@ -125,11 +132,9 @@ class Tuun:
         acqoptimizer = dict_to_namespace(acqoptimizer)
 
         if acqoptimizer is None:
-            self.acqoptimizer = get_acqoptimizer_from_config(None,
-                                                             verbose=True)
+            self.acqoptimizer = get_acqoptimizer_from_config(None, verbose=True)
         elif isinstance(acqoptimizer, Namespace):
-            self.acqoptimizer = get_acqoptimizer_from_config(acqoptimizer,
-                                                             verbose=True)
+            self.acqoptimizer = get_acqoptimizer_from_config(acqoptimizer, verbose=True)
         else:
             # If not Namespace or dict, treat as AcqOptimizer instance
             self.acqoptimizer = acqoptimizer
@@ -151,21 +156,26 @@ class Tuun:
         mp_return_dict = mp_manager.dict()
 
         subseed = np.random.randint(13337)
-        proc = multiprocessing.Process(target=self.mp_acq_optimize,
-                                       args=(self.data,
-                                             self.model,
-                                             self.acqfunction,
-                                             self.acqoptimizer,
-                                             mp_return_dict,
-                                             subseed))
+        proc = multiprocessing.Process(
+            target=self.mp_acq_optimize,
+            args=(
+                self.data,
+                self.model,
+                self.acqfunction,
+                self.acqoptimizer,
+                mp_return_dict,
+                subseed,
+            ),
+        )
         proc.start()
         proc.join()
         acq_optima = mp_return_dict['acq_optima']
 
         return acq_optima
 
-    def mp_acq_optimize(self, data, model, acqfunction, acqoptimizer,
-                        return_dict, seed=None):
+    def mp_acq_optimize(
+        self, data, model, acqfunction, acqoptimizer, return_dict, seed=None
+    ):
         """Acquisition optimization for use in multiprocessing."""
         # Set random seed
         if seed is not None:

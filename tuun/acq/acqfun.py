@@ -135,7 +135,7 @@ class AcqFunction:
         Return acqmap for a list of xin.
         """
         if self.params.acq_str == 'null':
-            return [0. for xin in xin_list]
+            return [0.0 for xin in xin_list]
         elif self.params.acq_str == 'rand':
             return [np.random.random() for xin in xin_list]
         else:
@@ -179,8 +179,11 @@ class AcqFunction:
             if xin_is_list and hasattr(self.model, 'postgen_list'):
                 self.pred_list_map = self.plm_pe_postgen_list
                 self.pred_list_map_id = 3
-            elif (xin_is_list and hasattr(self.model, 'gen_list') and
-                  hasattr(self.model, 'post')):
+            elif (
+                xin_is_list
+                and hasattr(self.model, 'gen_list')
+                and hasattr(self.model, 'post')
+            ):
                 self.pred_list_map = self.plm_pe_gen_list
                 self.pred_list_map_id = 4
             elif hasattr(self.model, 'postgen'):
@@ -189,8 +192,7 @@ class AcqFunction:
             elif hasattr(self.model, 'gen') and hasattr(self.model, 'post'):
                 self.pred_list_map = self.plm_pe_gen
                 self.pred_list_map_id = 6
-            elif hasattr(self.model, 'gen_list') and hasattr(self.model,
-                                                             'post'):
+            elif hasattr(self.model, 'gen_list') and hasattr(self.model, 'post'):
                 self.pred_list_map = self.plm_pe_gen_list
                 self.pred_list_map_id = 7
             elif hasattr(self.model, 'postgen_list'):
@@ -205,7 +207,7 @@ class AcqFunction:
         else:
             samp_list = [self.model.gen_list(x_list, z, s) for s in range(nsamp)]
             return list(np.array(samp_list).T)
-        
+
     def plm_ts_gen(self, nsamp, x_list):
         """One call to post, then calls to gen for each x in x_list"""
         z = self.model.post(0)
@@ -226,8 +228,9 @@ class AcqFunction:
             # TODO: fix next line, given a gen_list with z_is_list option
             return self.model.gen_list(x_list, post_list[0], 0, nsamp)
         else:
-            samp_list = [self.model.gen_list(x_list, z, s) for s, z in
-                         enumerate(post_list)]
+            samp_list = [
+                self.model.gen_list(x_list, z, s) for s, z in enumerate(post_list)
+            ]
             return list(np.array(samp_list).T)
 
     def plm_pe_postgen(self, nsamp, x_list):
@@ -237,8 +240,9 @@ class AcqFunction:
     def plm_pe_gen(self, nsamp, x_list):
         """Calls to post then gen for each x in x_list"""
         post_list = [self.model.post(s) for s in range(nsamp)]
-        return [self.model.gen(x, z, s) for s, x, z in
-                zip(range(nsamp), x_list, post_list)]
+        return [
+            self.model.gen(x, z, s) for s, x, z in zip(range(nsamp), x_list, post_list)
+        ]
 
     def print_str(self):
         """Print a description string"""

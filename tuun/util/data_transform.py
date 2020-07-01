@@ -28,7 +28,7 @@ class DataTransformer(object):
     def set_y_data(self, data):
         """Set self.y_data."""
         if len(data.y.shape) > 1:
-            if not (data.y.shape[0]==1 or data.y.shape[1]==1):
+            if not (data.y.shape[0] == 1 or data.y.shape[1] == 1):
                 raise ValueError('data.y has incorrect shape.')
         self.y_data_orig_shape = data.y.shape
         self.y_data = data.y.reshape(-1, 1)
@@ -61,7 +61,7 @@ class DataTransformer(object):
         # Transform y_trans back to original shape
         y_trans = y_trans_col.reshape(y_data_orig_shape)
         return y_trans
- 
+
     def inv_transform_y_data(self, y_data):
         """Return inverse transform of y_data."""
         y_data_orig_shape = y_data.shape

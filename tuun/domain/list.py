@@ -32,12 +32,10 @@ class ListDomain(object):
             params = Namespace(**params)
 
         self.params = Namespace()
-        self.params.set_domain_list_auto = getattr(params,
-                                                   'set_domain_list_auto',
-                                                   False)
-        self.params.domain_list_exec_str = getattr(params,
-                                                   'domain_list_exec_str',
-                                                   '')
+        self.params.set_domain_list_auto = getattr(
+            params, 'set_domain_list_auto', False
+        )
+        self.params.domain_list_exec_str = getattr(params, 'domain_list_exec_str', '')
         self.params.set_domain_list = getattr(params, 'set_domain_list', False)
         self.params.domain_list = getattr(params, 'domain_list', [])
 

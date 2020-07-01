@@ -50,9 +50,11 @@ class IntegralDomain:
             ret = False
         else:
             int_bools = [float(c).is_integer() for c in pt]
-            in_range_bools = [pt[i] >= self.params.min_max[i][0]
-                              and pt[i] <= self.params.min_max[i][1]
-                              for i in range(self.ndimx)]
+            in_range_bools = [
+                pt[i] >= self.params.min_max[i][0]
+                and pt[i] <= self.params.min_max[i][1]
+                for i in range(self.ndimx)
+            ]
 
             ret = False if False in int_bools + in_range_bools else True
 
@@ -60,8 +62,7 @@ class IntegralDomain:
 
     def unif_rand_sample(self, n=1):
         """Draws a sample uniformly at random from domain"""
-        li = [np.random.randint(mm[0], mm[1] + 1, n)
-              for mm in self.params.min_max]
+        li = [np.random.randint(mm[0], mm[1] + 1, n) for mm in self.params.min_max]
         return list(np.array(li).T)
 
     def print_str(self):

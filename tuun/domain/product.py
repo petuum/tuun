@@ -35,8 +35,7 @@ class ProductDomain:
 
         # Default domain list is [RealDomain, IntegralDomain]
         if domain_list is None:
-            domain_list = [RealDomain(verbose=False),
-                           IntegralDomain(verbose=False)]
+            domain_list = [RealDomain(verbose=False), IntegralDomain(verbose=False)]
 
         self.domain_list = domain_list
 
@@ -53,8 +52,9 @@ class ProductDomain:
     def is_in_domain(self, pt):
         """Check if pt is in domain, and return True or False."""
 
-        bool_list = [domain.is_in_domain(block) for block, domain in zip(pt,
-                     self.domain_list)]
+        bool_list = [
+            domain.is_in_domain(block) for block, domain in zip(pt, self.domain_list)
+        ]
         ret = False if False in bool_list else True
         return ret
 
@@ -68,6 +68,6 @@ class ProductDomain:
         """Print a description string."""
         print('*ProductDomain with domain_list:')
         for idx, domain in enumerate(self.domain_list):
-            #print('   Sub-domain {}: '.format(idx+1), end='')
+            # print('   Sub-domain {}: '.format(idx+1), end='')
             print('   {}: '.format(idx), end='')
             domain.print_str()

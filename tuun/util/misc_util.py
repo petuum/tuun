@@ -23,7 +23,7 @@ def dict_to_namespace(params):
     # If params is a dict, convert to Namespace
     if isinstance(params, dict):
         params = Namespace(**params)
-    
+
     return params
 
 
@@ -35,6 +35,7 @@ class suppress_stdout_stderr:
 
     Source: https://stackoverflow.com/q/11130156
     """
+
     def __init__(self):
         # Open a pair of null files
         self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]

@@ -105,7 +105,8 @@ class AcqOptimizer:
         self.xin_is_list = True if opt_str in batch_opt_str_tup else False
 
         # Set self.params.n_opt if not already in self.params
-        if not hasattr(self.params, 'n_opt'): self.params.n_opt = 1
+        if not hasattr(self.params, 'n_opt'):
+            self.params.n_opt = 1
 
     def optimize(self, acqfunction, data=None):
         """Optimize acqfunction over x in domain"""
@@ -113,13 +114,13 @@ class AcqOptimizer:
         if data is None or data.x == []:
             return self.domain.unif_rand_sample(1)[0]
 
-        if self.params.opt_str=='rand':
+        if self.params.opt_str == 'rand':
             return self.optimize_rand(self.domain, acqfunction)
-        elif self.params.opt_str=='mutate':
+        elif self.params.opt_str == 'mutate':
             return self.optimize_mutate(self.domain, acqfunction, data)
-        elif self.params.opt_str=='rand_seq':
+        elif self.params.opt_str == 'rand_seq':
             return self.optimize_rand_seq(self.domain, acqfunction)
-        elif self.params.opt_str=='ea':
+        elif self.params.opt_str == 'ea':
             return self.optimize_ea(self.domain, acqfunction, data)
 
     def optimize_rand(self, dom, acqmap):
@@ -139,14 +140,14 @@ class AcqOptimizer:
         """
         sort_idx_list = list(np.argsort(acqmap(xin_list)))
         return self.get_n_xin_list_from_sort_idx_list(xin_list, sort_idx_list)
-    
+
     def get_n_xin_list_from_sort_idx_list(self, xin_list, sort_idx_list):
         """
         Return n_opt (list or single element) of xin_list based on
         sort_idx_list of sorted indices.
         """
         if self.params.n_opt > 1:
-            trunc_sort_idx_list = sort_idx_list[:self.params.n_opt]
+            trunc_sort_idx_list = sort_idx_list[: self.params.n_opt]
             return [xin_list[m] for m in trunc_sort_idx_list]
         else:
             return xin_list[sort_idx_list[0]]
@@ -156,7 +157,7 @@ class AcqOptimizer:
         acq_list = []
         xin_list = []
         for i in range(self.params.max_iter):
-            xin =  dom.unif_rand_sample(1)[0]
+            xin = dom.unif_rand_sample(1)[0]
             acq_list.append(acqmap(xin))
             xin_list.append(xin)
         sort_idx_list = list(np.argsort(acq_list))
@@ -171,28 +172,26 @@ class AcqOptimizer:
         """Optimize acqmap(x) over domain via sequential data mutation"""
         n_rounds = getattr(self.params, 'n_rounds', 5)
         nmut = self.params.max_iter // n_rounds
-        new_data = Namespace(X = list(copy.deepcopy(data.X)),
-                             y = copy.deepcopy(data.y))
+        new_data = Namespace(X=list(copy.deepcopy(data.X)), y=copy.deepcopy(data.y))
 
         for r in range(n_rounds):
             # Choose subset of new_data of size nmut
             xidx = list(np.argsort(new_data.y))
             xidx = xidx[:nmut]
-            new_data = Namespace(X = [new_data.X[i] for i in xidx],
-                                 y = new_data.y[np.array(xidx)])
+            new_data = Namespace(
+                X=[new_data.X[i] for i in xidx], y=new_data.y[np.array(xidx)]
+            )
 
             # Mutate subset of data
             mut_list = dom.mutate_data(new_data, nmut)
 
             # Re-make new_data namespace
-            new_data = Namespace(X = mut_list,
-                                 y = np.array([acqmap(x) for x in mut_list]))
+            new_data = Namespace(X=mut_list, y=np.array([acqmap(x) for x in mut_list]))
 
         sort_idx_list = list(np.argsort(new_data.y))
-        return self.get_n_xin_list_from_sort_idx_list(new_data.X,
-                                                      sort_idx_list)
+        return self.get_n_xin_list_from_sort_idx_list(new_data.X, sort_idx_list)
 
-    # Utilities 
+    # Utilities
     def print_str(self):
         """Print a description string"""
         print('*AcqOptimizer with params={}'.format(self.params))

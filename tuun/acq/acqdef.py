@@ -36,12 +36,18 @@ class Acquisitioner:
 
     def set_acqfn(self):
         """Set the acquisition method."""
-        if self.params.acq_str=='ei': self.acqfn = self.ei
-        if self.params.acq_str=='pi': self.acqfn = self.pi
-        if self.params.acq_str=='ts': self.acqfn = self.ts
-        if self.params.acq_str=='ucb': self.acqfn = self.ucb
-        if self.params.acq_str=='rand': self.acqfn = self.rand
-        if self.params.acq_str=='null': self.acqfn = self.null
+        if self.params.acq_str == 'ei':
+            self.acqfn = self.ei
+        if self.params.acq_str == 'pi':
+            self.acqfn = self.pi
+        if self.params.acq_str == 'ts':
+            self.acqfn = self.ts
+        if self.params.acq_str == 'ucb':
+            self.acqfn = self.ucb
+        if self.params.acq_str == 'rand':
+            self.acqfn = self.rand
+        if self.params.acq_str == 'null':
+            self.acqfn = self.null
 
     def set_verbose(self, verbose):
         """Set verbose options."""
@@ -51,22 +57,22 @@ class Acquisitioner:
 
     def ei(self, pmout):
         """Expected improvement (EI)."""
-        if self.params.pmout_str=='sample':
+        if self.params.pmout_str == 'sample':
             return self.ppl_acq_ei(pmout)
 
     def pi(self, pmout):
         """Probability of improvement (PI)."""
-        if self.params.pmout_str=='sample':
+        if self.params.pmout_str == 'sample':
             return self.ppl_acq_pi(pmout)
 
     def ucb(self, pmout):
         """Upper (lower) confidence bound (UCB)."""
-        if self.params.pmout_str=='sample':
+        if self.params.pmout_str == 'sample':
             return self.ppl_acq_ucb(pmout)
 
     def ts(self, pmout):
         """Thompson sampling (TS)."""
-        if self.params.pmout_str=='sample':
+        if self.params.pmout_str == 'sample':
             return self.ppl_acq_ts(pmout)
 
     def rand(self, pmout):
@@ -75,7 +81,7 @@ class Acquisitioner:
 
     def null(self, pmout):
         """Return constant 0."""
-        return 0.
+        return 0.0
 
     # PPL Acquisition Functions
     def ppl_acq_ei(self, pmout_samp, normal=True):
@@ -108,8 +114,11 @@ class Acquisitioner:
         else:
             diffs = y_min - youts
             ind_below_min = np.argwhere(diffs > 0)
-            eiVal = -1 * np.sum(diffs[ind_below_min]) / float(nsamp) \
-                    if len(ind_below_min) > 0 else 0
+            eiVal = (
+                -1 * np.sum(diffs[ind_below_min]) / float(nsamp)
+                if len(ind_below_min) > 0
+                else 0
+            )
         return eiVal
 
     def ppl_acq_pi(self, pmout_samp, normal=True):
@@ -165,11 +174,12 @@ class Acquisitioner:
         youts = np.array(pmout_samp).flatten()
         nsamp = youts.shape[0]
         if normal:
-            ucb_val = np.mean(youts) - beta*np.std(youts)
+            ucb_val = np.mean(youts) - beta * np.std(youts)
         else:
-            half_conf_mass = norm.cdf(beta/2) - norm.cdf(-beta/2) 
-            quantiles = mstats.mquantiles(youts, prob=[.5 - half_conf_mass, .5,
-                                                       .5 + half_conf_mass])
+            half_conf_mass = norm.cdf(beta / 2) - norm.cdf(-beta / 2)
+            quantiles = mstats.mquantiles(
+                youts, prob=[0.5 - half_conf_mass, 0.5, 0.5 + half_conf_mass]
+            )
             ucb_val = quantiles[0]
         return ucb_val
 

@@ -9,9 +9,9 @@ from ..util.misc_util import dict_to_namespace
 
 def get_domain_from_params(dom_params, verbose=False):
     """Return Domain instance."""
-    if dom_params.dom_str=='real':
+    if dom_params.dom_str == 'real':
         return RealDomain(dom_params, verbose)
-    elif dom_params.dom_str=='list':
+    elif dom_params.dom_str == 'list':
         return ListDomain(dom_params, verbose)
 
 
