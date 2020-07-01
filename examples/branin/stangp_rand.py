@@ -5,8 +5,18 @@ from examples.branin.branin import branin, get_branin_domain
 data = {'x': [], 'y': []}
 
 # define model
-model = StanGp({'ndimx':2, 'model_str':'optfixedsig', 'ig1':4., 'ig2':3.,
-                'n1':1., 'n2':1., 'sigma':1e-5, 'niter':70})
+model = StanGp(
+    {
+        'ndimx': 2,
+        'model_str': 'optfixedsig',
+        'ig1': 4.0,
+        'ig2': 3.0,
+        'n1': 1.0,
+        'n2': 1.0,
+        'sigma': 1e-5,
+        'niter': 70,
+    }
+)
 
 # define acqfunction
 acqfunction = {'acq_str': 'ei', 'n_gen': 500}

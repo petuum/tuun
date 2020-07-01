@@ -4,7 +4,7 @@ from tuun import Tuun, AcqOptimizer, SimpleGp
 data = {'x': [], 'y': []}
 
 # define model
-model = SimpleGp({'ls': 1.5, 'alpha': 2., 'sigma': 1e-5})
+model = SimpleGp({'ls': 1.5, 'alpha': 2.0, 'sigma': 1e-5})
 
 # define acqfunction
 acqfunction = {'acq_str': 'ucb'}
@@ -16,7 +16,7 @@ acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 tu = Tuun(data, model, acqfunction, acqoptimizer)
 
 # define function
-f = lambda x: x**4 - x**2 + 0.1*x
+f = lambda x: x ** 4 - x ** 2 + 0.1 * x
 
 # BO loop
 for i in range(30):

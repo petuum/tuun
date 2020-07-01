@@ -2,9 +2,16 @@ from tuun import Tuun, AcqOptimizer, SimpleGp
 import numpy as np
 
 # define initial dataset
-data = {'x': [np.array([0., 0.]), np.array([0., 1.]), np.array([1., 0.]),
-              np.array([1., 1.]), np.array([.5, .5])],
-        'y': [6., 3., 4., 5., 2.]}
+data = {
+    'x': [
+        np.array([0.0, 0.0]),
+        np.array([0.0, 1.0]),
+        np.array([1.0, 0.0]),
+        np.array([1.0, 1.0]),
+        np.array([0.5, 0.5]),
+    ],
+    'y': [6.0, 3.0, 4.0, 5.0, 2.0],
+}
 
 # define model
 model = SimpleGp({'ls': 3.7, 'alpha': 1.85, 'sigma': 1e-5})

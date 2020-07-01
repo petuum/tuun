@@ -1,7 +1,7 @@
 from tuun import Tuun, AcqOptimizer, SimpleGp
 
 # define initial dataset
-data = {'x': [0., 1., 2.], 'y': [6., 3., 4.]}
+data = {'x': [0.0, 1.0, 2.0], 'y': [6.0, 3.0, 4.0]}
 
 # define model
 model = SimpleGp({'ls': 3.7, 'alpha': 1.85, 'sigma': 1e-5})

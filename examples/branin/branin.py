@@ -21,7 +21,7 @@ def branin(x):
 
     elif len(x.shape) == 2:
         # x could be single input or matrix of multiple inputs
-        if x.shape[0]==1 or x.shape[1]==1:
+        if x.shape[0] == 1 or x.shape[1] == 1:
             # x is single row matrix or single column matrix
             return branin_single(x.reshape(-1))
 
@@ -30,9 +30,12 @@ def branin(x):
             return branin_on_matrix(x)
 
     else:
-        raise ValueError(('Input to branin function must be a float, or a ' +
-                          '1D or 2D np array, instead of a {}'
-                         ).format(type(x)))
+        raise ValueError(
+            (
+                'Input to branin function must be a float, or a '
+                + '1D or 2D np array, instead of a {}'
+            ).format(type(x))
+        )
 
 
 def branin_on_matrix(X):
@@ -66,12 +69,16 @@ def branin_single(x):
     float
         The function value f(x), a float.
     """
-    b = 5.1/(4.*np.pi**2)
-    c = 5./np.pi
-    t = 1./(8.*np.pi)
+    b = 5.1 / (4.0 * np.pi ** 2)
+    c = 5.0 / np.pi
+    t = 1.0 / (8.0 * np.pi)
     x0 = x[0]
     x1 = x[1]
-    return 1.*(x1-b*x0**2+c*x0-6.)**2 + 10.*(1-t)*np.cos(x0)+10.
+    return (
+        1.0 * (x1 - b * x0 ** 2 + c * x0 - 6.0) ** 2
+        + 10.0 * (1 - t) * np.cos(x0)
+        + 10.0
+    )
 
 
 def get_branin_domain():
