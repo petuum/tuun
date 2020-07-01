@@ -6,7 +6,7 @@ distributed settings.
 
 ## Installation
 
-Tuun requires Python 3.6+. To install python dependencies, run:
+Tuun requires Python 3.6+. To install Python dependencies, run:
 ```
 $ pip install -r requirements/requirements.txt
 ```
