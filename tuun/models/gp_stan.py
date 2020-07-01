@@ -6,8 +6,8 @@ from argparse import Namespace
 import copy
 import numpy as np
 
-import tuun.model.stan.gp as gpstan
-import tuun.model.stan.gp_fixedsig as gpstan_fixedsig
+import tuun.models.stan.gp as gpstan
+import tuun.models.stan.gp_fixedsig as gpstan_fixedsig
 from .gp.gp_utils import kern_exp_quad, sample_mvn, gp_post
 from ..util.misc_util import dict_to_namespace, suppress_stdout_stderr
 

@@ -10,13 +10,13 @@ from .acq import (
     NelderMeadAcqOptimizer,
 )
 from .domain import RealDomain, ListDomain
-from .model import SimpleGp
+from .models import SimpleGp
 from .tuun import Tuun
 
 
 # Stan models
 try:
-    from .model import StanGp
+    from .models import StanGp
 except:
     pass
 
