@@ -1,35 +1,20 @@
-from tuun import Tuun, AcqOptimizer, SimpleGp
+from tuun import Tuun, SimpleGp, AcqOptimizer, SimpleBo
 
 # define model
 model = SimpleGp({'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5})
 
 # define acqfunction
-acqfunction = {'acq_str': 'ucb'}
+acqfunction = {'acq_str': 'ei'}
 
 # define acqoptimizer
 acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 
-# define dataset
-data = {'x': [], 'y': []}
-
 # define tuun
-tu = Tuun(model, acqfunction, acqoptimizer, data)
+tu = Tuun(model, acqfunction, acqoptimizer, data=None)
 
 # define function
 f = lambda x: x ** 4 - x ** 2 + 0.1 * x
 
-# BO loop
-for i in range(20):
-
-    # Choose next x and query f(x)
-    x = tu.get()[0]
-    y = f(x)
-
-    # Update data and reset data in tu
-    data['x'].append(x)
-    data['y'].append(y)
-    tu.set_data(data)
-
-    # Print iter info
-    bsf = min(data['y'])
-    print('i: {},    x: {:.4f},\ty: {:.4f},\tBSF: {:.4f}'.format(i, x, y, bsf))
+# define and run BO
+bo = SimpleBo(tu, f, params={'n_iter': 20})
+results = bo.run()

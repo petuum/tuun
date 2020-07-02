@@ -9,6 +9,9 @@ import numpy as np
 from ..util.misc_util import dict_to_namespace
 
 
+np.set_printoptions(precision=3, suppress=True)
+
+
 class SimpleBo:
     """
     Simple Bayesian optimization on a single machine.
@@ -91,7 +94,7 @@ class SimpleBo:
     def print_iter_info(self, iter_idx):
         """Print information for a given iteration of Bayesian optimization."""
         x = self.data.x[-1]
-        y = self.data.y[-1]
+        y = self.data.y[-1].item()
         bsf = np.min(self.data.y)
         print('i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x, y, bsf))
 
