@@ -2,7 +2,7 @@ from tuun import Tuun, AcqOptimizer, SimpleGp
 import numpy as np
 
 # define model
-model = SimpleGp({'ls': 3., 'alpha': 1.5, 'sigma': 1e-5})
+model = SimpleGp({'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5})
 
 # define acqfunction
 acqfunction = {'acq_str': 'ei', 'n_gen': 100}

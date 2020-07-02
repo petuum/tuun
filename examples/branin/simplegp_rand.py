@@ -2,7 +2,7 @@ from tuun import Tuun, SimpleGp, AcqOptimizer, SimpleBo
 from examples.branin.branin import branin, get_branin_domain
 
 # define model
-model = SimpleGp({'ls': 3., 'alpha': 1.5, 'sigma': 1e-5})
+model = SimpleGp({'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5})
 
 # define acqfunction
 acqfunction = {'acq_str': 'ei', 'n_gen': 500}
