@@ -23,10 +23,10 @@ class Tuun:
 
     def __init__(
         self,
-        data=None,
         model=None,
         acqfunction=None,
         acqoptimizer=None,
+        data=None,
         params=None,
         verbose=True,
         seed=None,
@@ -34,8 +34,6 @@ class Tuun:
         """
         Parameters
         ----------
-        data : Namespace_or_dict
-            Namespace or dict of initial data. Contains fields x and y (lists).
         model : Model
             Model instance. Default is None, which uses a random acquisition
             function. 
@@ -45,6 +43,8 @@ class Tuun:
         acqoptimizer : AcqOptimizer_or_Namespace_or_dict
             AcqOptimizer instance or Namespace/dict of parameters. Default is
             None, which uses random search.
+        data : Namespace_or_dict
+            Namespace or dict of initial data. Contains fields x and y (lists).
         params : Namespace_or_dict
             Namespace or dict of additional parameters for tuun.
         verbose : bool
