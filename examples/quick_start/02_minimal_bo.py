@@ -10,7 +10,7 @@ acqfunction = {'acq_str': 'ei'}
 acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 
 # define tuun
-tu = Tuun(model, acqfunction, acqoptimizer, data=None)
+tu = Tuun(model, acqfunction, acqoptimizer)
 
 # define function
 f = lambda x: x ** 4 - x ** 2 + 0.1 * x
