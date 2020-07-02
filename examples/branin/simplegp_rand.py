@@ -1,11 +1,11 @@
-from tuun import Tuun, AcqOptimizer, SimpleGp
+from tuun import Tuun, SimpleGp, AcqOptimizer
 from examples.branin.branin import branin, get_branin_domain
 
 # define dataset
 data = {'x': [], 'y': []}
 
 # define model
-model = SimpleGp({'ls': 3.7, 'alpha': 1.85, 'sigma': 1e-5})
+model = SimpleGp({'ls': 3., 'alpha': 1.5, 'sigma': 1e-5})
 
 # define acqfunction
 acqfunction = {'acq_str': 'ei', 'n_gen': 500}

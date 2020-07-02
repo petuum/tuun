@@ -6,7 +6,6 @@ from argparse import Namespace
 import numpy as np
 
 from tuun.domain.real import RealDomain
-from tuun.domain.list import ListDomain
 
 
 def branin(x):
