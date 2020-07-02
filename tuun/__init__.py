@@ -9,6 +9,7 @@ from .acq import (
     CobylaAcqOptimizer,
     NelderMeadAcqOptimizer,
 )
+from .bo import SimpleBo
 from .domain import RealDomain, ListDomain
 from .models import SimpleGp
 from .tuun import Tuun
@@ -30,5 +31,6 @@ __all__ = [
     'ListDomain',
     'RealDomain',
     'SimpleGp',
+    'SimpleBo',
     'Tuun',
 ]
