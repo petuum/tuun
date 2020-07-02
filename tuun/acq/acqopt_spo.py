@@ -172,7 +172,7 @@ class SpoAcqOptimizer(AcqOptimizer):
         return optima
 
     def print_str(self):
-        """Print a description string"""
+        """Print a description string."""
         print('*SpoAcqOptimizer with params={}'.format(self.params))
 
 

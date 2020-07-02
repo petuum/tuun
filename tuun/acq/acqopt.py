@@ -191,7 +191,6 @@ class AcqOptimizer:
         sort_idx_list = list(np.argsort(new_data.y))
         return self.get_n_xin_list_from_sort_idx_list(new_data.X, sort_idx_list)
 
-    # Utilities
     def print_str(self):
-        """Print a description string"""
+        """Print a description string."""
         print('*AcqOptimizer with params={}'.format(self.params))
