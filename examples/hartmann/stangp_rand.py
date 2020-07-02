@@ -1,4 +1,4 @@
-from tuun import Tuun, StanGp, AcqOptimizer
+from tuun import Tuun, StanGp, AcqOptimizer, SimpleBo
 from examples.hartmann.hartmann import hartmann6, get_hartmann6_domain
 
 # define dataset
@@ -30,18 +30,6 @@ tu = Tuun(data, model, acqfunction, acqoptimizer, seed=11)
 # define function
 f = hartmann6
 
-# BO loop
-for i in range(50):
-
-    # Choose next x and query f(x)
-    x = tu.get()
-    y = f(x)
-
-    # Update data and reset data in tu
-    data['x'].append(x)
-    data['y'].append(y)
-    tu.set_data(data)
-
-    # Print iter info
-    bsf = min(data['y'])
-    print('i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(i, x, y, bsf))
+# define and run BO
+bo = SimpleBo(tu, f, params={'n_iter': 50})
+results = bo.run()
