@@ -1,9 +1,6 @@
 from tuun import Tuun, StanGp, CobylaAcqOptimizer, SimpleBo
 from examples.hartmann.hartmann import hartmann6, get_hartmann6_domain
 
-# define dataset
-data = {'x': [], 'y': []}
-
 # define model
 model = StanGp(
     {
@@ -25,7 +22,7 @@ acqfunction = {'acq_str': 'ei', 'n_gen': 500}
 acqoptimizer = CobylaAcqOptimizer({'rand_every': 4}, get_hartmann6_domain())
 
 # define tuun
-tu = Tuun(data, model, acqfunction, acqoptimizer, seed=11)
+tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=11)
 
 # define function
 f = hartmann6
