@@ -54,7 +54,7 @@ class AcqFunction:
 
         # Set defaults
         self.params = Namespace()
-        self.params.acq_str = getattr(params, 'acq_str', 'rand')
+        self.params.acq_str = getattr(params, 'acq_str', 'ei')
         self.params.n_gen = getattr(params, 'n_gen', 10)
         self.params.trans_str = getattr(params, 'trans_str', 'y')
 
@@ -81,10 +81,14 @@ class AcqFunction:
             appropriate acqfunction (e.g. acqoptimizer.xin_is_list, which, if
             True, gives a list of xin as input to acqfunction).
         """
+
+        if model is None:
+            # If there is no model, use random acquisition function
+            self.params.acq_str = 'rand'
+
         if data is None or data.x == []:
             # If there is no data, do nothing (don't set self.acqf)
             pass
-
         else:
             self.data = self.convert_data(data)
             self.model = model

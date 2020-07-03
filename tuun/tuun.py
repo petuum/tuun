@@ -35,14 +35,12 @@ class Tuun:
         Parameters
         ----------
         model : Model
-            Model instance. Default is None, which uses a random acquisition
-            function. 
+            Model instance. Default is None, which uses a random acquisition function.
         acqfunction : AcqFunction_or_Namespace_or_dict
-            AcqFunction instance or Namespace/dict of parameters. Default is
-            None, which uses a random acquisition function.
+            AcqFunction instance or Namespace/dict of parameters. Default is EI.
         acqoptimizer : AcqOptimizer_or_Namespace_or_dict
-            AcqOptimizer instance or Namespace/dict of parameters. Default is
-            None, which uses random search.
+            AcqOptimizer instance or Namespace/dict of parameters. Default is None,
+            which uses random search.
         data : Namespace_or_dict
             Namespace or dict of initial data. Contains fields x and y (lists).
         params : Namespace_or_dict
