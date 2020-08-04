@@ -56,7 +56,7 @@ class AcqFunction:
         self.params = Namespace()
         self.params.acq_str = getattr(params, 'acq_str', 'ei')
         self.params.n_gen = getattr(params, 'n_gen', 10)
-        self.params.trans_str = getattr(params, 'trans_str', 'y')
+        self.params.trans_str = getattr(params, 'trans_str', '')
 
     def set_verbose(self, verbose):
         """Set verbose options"""
