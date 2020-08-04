@@ -1,1 +1,1 @@
-pytest tests/
+pytest --disable-pytest-warnings tests/
