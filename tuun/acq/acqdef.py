@@ -44,6 +44,8 @@ class Acquisitioner:
             self.acqfn = self.ts
         if self.params.acq_str == 'ucb':
             self.acqfn = self.ucb
+        if self.params.acq_str == 'mean':
+            self.acqfn = self.mean
         if self.params.acq_str == 'rand':
             self.acqfn = self.rand
         if self.params.acq_str == 'null':
@@ -74,6 +76,11 @@ class Acquisitioner:
         """Thompson sampling (TS)."""
         if self.params.pmout_str == 'sample':
             return self.ppl_acq_ts(pmout)
+
+    def mean(self, pmout):
+        """Mean of posterior predictive."""
+        if self.params.pmout_str == 'sample':
+            return self.ppl_acq_mean(pmout)
 
     def rand(self, pmout):
         """Uniform random sampling."""
@@ -172,7 +179,6 @@ class Acquisitioner:
             PPL-UCB acquisition function value.
         """
         youts = np.array(pmout_samp).flatten()
-        nsamp = youts.shape[0]
         if normal:
             ucb_val = np.mean(youts) - beta * np.std(youts)
         else:
@@ -198,6 +204,24 @@ class Acquisitioner:
             PPL-TS acquisition function value.
         """
         return pmout_samp.mean()
+
+    def ppl_acq_mean(self, pmout_samp):
+        """
+        PPL-Mean: PPL acquisition function algorithm for the mean of the posterior
+        predictive.
+
+        Parameters
+        ----------
+        pmout_samp : ndarray
+            A numpy ndarray with shape=(nsamp,).
+
+        Returns
+        -------
+        float
+            PPL-Mean acquisition function value.
+        """
+        youts = np.array(pmout_samp).flatten()
+        return np.mean(youts)
 
     # Utilities
     def print_str(self):
