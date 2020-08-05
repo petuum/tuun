@@ -1,1 +1,2 @@
 -r requirements_stan.txt
+-r requirements_gpytorch.txt

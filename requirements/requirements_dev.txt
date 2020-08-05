@@ -1,0 +1,4 @@
+-r requirements_all.txt
+
+black>=19.10b0
+jupyter>=1.0.0
