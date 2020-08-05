@@ -8,7 +8,9 @@ model = SklearnPenn()
 acqfunction = {'acq_str': 'ucb', 'n_gen': 500}
 
 # define acqoptimizer
-acqoptimizer = CobylaAcqOptimizer({'rand_every': 4}, get_branin_domain())
+acqoptimizer = CobylaAcqOptimizer(
+    {'rand_every': 4, 'jitter': True}, get_branin_domain()
+)
 
 # define tuun
 tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=11)
