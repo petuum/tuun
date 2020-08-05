@@ -51,6 +51,8 @@ class SpoAcqOptimizer(AcqOptimizer):
         self.n_opt_calls = getattr(
             params, 'n_opt_calls', 0
         )  # for starting on explicit value
+        self.jitter = getattr(params, 'jitter', False) # to jitter initial point
+        self.jitter_val = getattr(params, 'jitter_val', 0.1) # to jitter initial point
 
     def set_verbose(self, verbose):
         """Set verbose options."""
@@ -87,12 +89,14 @@ class SpoAcqOptimizer(AcqOptimizer):
             else:
                 init_point = bsf_point
 
+            init_point = self.possibly_apply_jitter(init_point)
             optima = self.run_spo_minimize(self.domain, acqmap, data, init_point)
 
         if self.init_str == 'bsf_rand':
             # Initialization with best-so-far and random-sampling strategy
 
             init_point_list = [bsf_point] + self.domain.unif_rand_sample(self.n_rand)
+            init_point_list = self.possibly_apply_jitter(init_point_list)
 
             opt_list = [
                 self.run_spo_minimize(self.domain, acqmap, data, ip)
@@ -107,6 +111,8 @@ class SpoAcqOptimizer(AcqOptimizer):
             # Initialization with explicit initialization to data.init_opt
 
             init_point = data.init_opt
+            init_point = self.possibly_apply_jitter(init_point)
+
             optima = self.run_spo_minimize(self.domain, acqmap, data, init_point)
 
         if self.init_str == 'topk':
@@ -114,6 +120,8 @@ class SpoAcqOptimizer(AcqOptimizer):
 
             idx_list = np.argsort(data.y)[: self.k]
             init_point_list = [data.X[idx] for idx in idx_list]
+            init_point_list = self.possibly_apply_jitter(init_point_list)
+
             opt_list = [
                 self.run_spo_minimize(self.domain, acqmap, data, ip)
                 for ip in init_point_list
@@ -129,6 +137,31 @@ class SpoAcqOptimizer(AcqOptimizer):
             self.print_acq_delta(acqmap, init_point, optima)
 
         return optima
+
+    def possibly_apply_jitter(self, point_or_list):
+        """Optionally return a jittered version of point or list."""
+        if self.jitter is True:
+            if type(point_or_list) is not list:
+                point_or_list = self.get_jitter_point(point_or_list)
+            else:
+                point_or_list = [
+                    self.get_jitter_point(ip) for ip in point_or_list
+                ]
+        return point_or_list
+
+    def get_jitter_point(self, point):
+        """Return a jittered version of point."""
+        widths = [np.abs(mm[1] - mm[0]) for mm in self.domain.params.min_max]
+        widths = [(w / 2) * self.jitter_val for w in widths]
+
+        upper_bounds = point + np.array(widths)
+        lower_bounds = point - np.array(widths)
+
+        point_mod = np.array(
+            [np.random.uniform(lower_bounds[i], upper_bounds[i], 1)[0]
+             for i in range(len(point))]
+        )
+        return point_mod
 
     def print_acq_delta(self, acqmap, init_point, optima):
         """Print acquisition function delta for optima minus initial point."""
