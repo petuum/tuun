@@ -22,6 +22,13 @@ except:
     pass
 
 
+# Scikit-learn models
+try:
+    from .models import SklearnPenn
+except:
+    pass
+
+
 __all__ = [
     'AcqFunction',
     'AcqOptimizer',

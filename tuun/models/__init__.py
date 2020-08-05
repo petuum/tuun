@@ -8,8 +8,12 @@ from .gp_simple import SimpleGp
 
 # Sklearn models
 try:
-    from .nn_sklearn import SklearnHpnn
     from .penn_sklearn import SklearnPenn
+except:
+    pass
+
+try:
+    from .nn_sklearn import SklearnHpnn
 except:
     pass
 
