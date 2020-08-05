@@ -8,7 +8,7 @@ model = SklearnPenn()
 acqfunction = {'acq_str': 'ucb', 'n_gen': 500}
 
 # define acqoptimizer
-acqoptimizer = AcqOptimizer({'max_iter': 1000}, get_branin_domain())
+acqoptimizer = AcqOptimizer(domain=get_branin_domain())
 
 # define tuun
 tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=11)
