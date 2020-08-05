@@ -40,21 +40,21 @@ class SklearnPenn:
         self.params.n_ensemble = getattr(params, 'n_ensemble', 5)
         self.params.hls = getattr(params, 'hls', (20, 30, 40))
         self.params.max_iter = getattr(params, 'max_iter', 500)
-        self.params.alpha = getattr(params, 'alpha', .01)
+        self.params.alpha = getattr(params, 'alpha', 0.01)
         self.params.trans_x = getattr(params, 'trans_x', False)
 
     def set_data(self, data):
         """Set self.data"""
         self.data_init = copy.deepcopy(data)
         self.data = Namespace(
-            X = self.transform_xin_list(self.data_init.X), y = self.data_init.y
+            X=self.transform_xin_list(self.data_init.X), y=self.data_init.y
         )
 
     def transform_xin_list(self, xin_list):
         """Transform list of xin (e.g. in data.X)."""
         if self.params.trans_x:
             # apply transformation to xin_list
-            xin_list_trans = xin_list # TODO: define default transformation
+            xin_list_trans = xin_list  # TODO: define default transformation
         else:
             xin_list_trans = xin_list
 
@@ -72,8 +72,9 @@ class SklearnPenn:
                 activation='relu',
                 alpha=self.params.alpha,
                 hidden_layer_sizes=self.params.hls,
-                random_state=i
-            ) for i in range(self.params.n_ensemble)
+                random_state=i,
+            )
+            for i in range(self.params.n_ensemble)
         ]
 
         X_train = np.array(self.data.X)
@@ -113,7 +114,7 @@ class SklearnPenn:
         pred_list = [
             np.array([z.predict(x.reshape(1, -1)) for _ in range(nsamp)]).reshape(-1)
             for x in x_list
-        ] # TODO: predict on batch of x_list
+        ]  # TODO: predict on batch of x_list
         return pred_list
 
     def postgen_list(self, x_list, s, nsamp):
@@ -141,7 +142,7 @@ class SklearnPenn:
         pred_list = [
             np.array([nn.predict(x.reshape(1, -1)) for nn in self.ensemble]).reshape(-1)
             for x in x_list
-        ] # TODO: predict on batch of x_list
+        ]  # TODO: predict on batch of x_list
         return pred_list
 
     def print_str(self):

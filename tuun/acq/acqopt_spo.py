@@ -51,8 +51,8 @@ class SpoAcqOptimizer(AcqOptimizer):
         self.n_opt_calls = getattr(
             params, 'n_opt_calls', 0
         )  # for starting on explicit value
-        self.jitter = getattr(params, 'jitter', False) # to jitter initial point
-        self.jitter_val = getattr(params, 'jitter_val', 0.1) # to jitter initial point
+        self.jitter = getattr(params, 'jitter', False)  # to jitter initial point
+        self.jitter_val = getattr(params, 'jitter_val', 0.1)  # to jitter initial point
 
     def set_verbose(self, verbose):
         """Set verbose options."""
@@ -144,9 +144,7 @@ class SpoAcqOptimizer(AcqOptimizer):
             if type(point_or_list) is not list:
                 point_or_list = self.get_jitter_point(point_or_list)
             else:
-                point_or_list = [
-                    self.get_jitter_point(ip) for ip in point_or_list
-                ]
+                point_or_list = [self.get_jitter_point(ip) for ip in point_or_list]
         return point_or_list
 
     def get_jitter_point(self, point):
@@ -158,8 +156,10 @@ class SpoAcqOptimizer(AcqOptimizer):
         lower_bounds = point - np.array(widths)
 
         point_mod = np.array(
-            [np.random.uniform(lower_bounds[i], upper_bounds[i], 1)[0]
-             for i in range(len(point))]
+            [
+                np.random.uniform(lower_bounds[i], upper_bounds[i], 1)[0]
+                for i in range(len(point))
+            ]
         )
         return point_mod
 
