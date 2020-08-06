@@ -28,6 +28,7 @@ class GpytorchGp:
             If True, print description string.
         """
         self.set_params(params)
+        self.set_torch_seed()
         self.set_verbose(verbose)
 
     def set_params(self, params):
@@ -38,6 +39,12 @@ class GpytorchGp:
         self.params = Namespace()
         self.params.n_train_iter = getattr(params, 'n_train_iter', 200)
         self.params.trans_x = getattr(params, 'trans_x', False)
+        self.params.seed = getattr(params, 'seed', -1)
+
+    def set_torch_seed(self):
+        """Set torch random number seed."""
+        if self.params.seed > 0:
+            torch.manual_seed(self.params.seed)
 
     def set_verbose(self, verbose):
         """Set verbose options."""

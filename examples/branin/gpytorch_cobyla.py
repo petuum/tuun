@@ -1,8 +1,11 @@
 from tuun import Tuun, GpytorchGp, CobylaAcqOptimizer, SimpleBo
 from examples.branin.branin import branin, get_branin_domain
 
+# define seed
+seed = 11
+
 # define model
-model = GpytorchGp()
+model = GpytorchGp({'seed': seed})
 
 # define acqfunction
 acqfunction = {'acq_str': 'ucb', 'n_gen': 500}
@@ -11,7 +14,7 @@ acqfunction = {'acq_str': 'ucb', 'n_gen': 500}
 acqoptimizer = CobylaAcqOptimizer({'rand_every': 4}, get_branin_domain())
 
 # define tuun
-tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=11)
+tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=seed)
 
 # define function
 f = branin
