@@ -232,7 +232,7 @@ class CobylaAcqOptimizer(SpoAcqOptimizer):
         print(str(self))
 
     def __str__(self):
-        return '*CobylaAcqOptimizer with params = {}.'.format(self.params)
+        return '*CobylaAcqOptimizer with params = {}'.format(self.params)
 
 
 class NelderMeadAcqOptimizer(SpoAcqOptimizer):
@@ -252,4 +252,4 @@ class NelderMeadAcqOptimizer(SpoAcqOptimizer):
         print(str(self))
 
     def __str__(self):
-        return '*NelderMeadAcqOptimizer with params = {}.'.format(self.params)
+        return '*NelderMeadAcqOptimizer with params = {}'.format(self.params)

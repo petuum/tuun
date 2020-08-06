@@ -16,6 +16,13 @@ Certain models may require additional dependencies, for example:
 * `SklearnPerf` dependencies:
     - scikit-learn 
 
+To install dependencies for all of the above Tuun models, run:
+```
+$ pip install -r requirements/requirements_all.txt
+```
+
+To install dependencies for individual models separately, follow the instructions below.
+
 
 ## Stan Models
 
