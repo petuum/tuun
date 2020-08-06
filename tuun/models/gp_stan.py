@@ -6,8 +6,8 @@ from argparse import Namespace
 import copy
 import numpy as np
 
-import tuun.models.stan.gp as gpstan
-import tuun.models.stan.gp_fixedsig as gpstan_fixedsig
+from .stan.gp import get_model as get_model_gp
+from .stan.gp_fixedsig import get_model as get_model_gp_fixedsig
 from .gp.gp_utils import kern_exp_quad, sample_mvn, gp_post
 from ..util.misc_util import dict_to_namespace, suppress_stdout_stderr
 
@@ -62,9 +62,9 @@ class StanGp:
             self.params.model_str == 'optfixedsig'
             or self.params.model_str == 'sampfixedsig'
         ):
-            return gpstan_fixedsig.get_model(print_status=self.verbose)
+            return get_model_gp_fixedsig(print_status=self.verbose)
         elif self.params.model_str == 'opt' or self.params.model_str == 'samp':
-            return gpstan.get_model(print_status=self.verbose)
+            return get_model_gp(print_status=self.verbose)
         elif self.params.model_str == 'fixedparam':
             return None
 
