@@ -89,7 +89,7 @@ class GpytorchGp:
         self.likelihood.train()
 
         # Set adam optimizer
-        optimizer = torch.optim.Adam( [{'params': self.model.parameters()}, ], lr=0.1)
+        optimizer = torch.optim.Adam([{'params': self.model.parameters()},], lr=0.1)
 
         # Set GP loss
         mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self.model)

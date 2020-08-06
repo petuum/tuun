@@ -33,7 +33,6 @@ except:
     pass
 
 
-
 __all__ = [
     'AcqFunction',
     'AcqOptimizer',
