@@ -14,19 +14,24 @@ from .domain import RealDomain, ListDomain
 from .models import SimpleGp
 from .tuun import Tuun
 
-
 # Stan models
 try:
     from .models import StanGp
 except:
     pass
 
-
 # Scikit-learn models
 try:
     from .models import SklearnPenn
 except:
     pass
+
+# Gpytorch models
+try:
+    from .models import GpytorchGp
+except:
+    pass
+
 
 
 __all__ = [

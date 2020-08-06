@@ -23,6 +23,12 @@ try:
 except:
     pass
 
+# Gpytorch models
+try:
+    from .gp_gpytorch import GpytorchGp
+except:
+    pass
+
 # Pyro models
 try:
     from .bnn_pyro import PyroBnn
