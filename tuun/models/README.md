@@ -33,3 +33,11 @@ $ pip install -r requirements/requirements_stan.txt
 Additionally, Stan models must be compiled on a given machine before use. To
 compile the Stan models used in this directory, see the model code in
 [`stan/`](stan/) and [compilation instructions](stan/README.md).
+
+
+## GPyTorch Models
+
+To install Tuun with dependencies for GPyTorch models, run:
+```
+$ pip install -r requirements/requirements_gpytorch.txt
+```

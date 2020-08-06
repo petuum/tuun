@@ -9,7 +9,7 @@ To compile a given Stan model (e.g. a hierarchical GP Stan model), use
 [`compile_models.py`](compile_models.py). This will compile (takes around a
 minute) and save the model as a pickle file in the [`model_pkls/`](model_pkls/)
 directory. These pickled models are then automatically used by code in the
-[`../models/`](../) directory.  As an example, run
+[`../models/`](../) directory. As an example, run
 ```
 $ python tuun/models/stan/compile_models.py -m gp_fixedsig
 ```
