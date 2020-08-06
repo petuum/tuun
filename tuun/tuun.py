@@ -75,6 +75,7 @@ class Tuun:
         params = dict_to_namespace(params)
         self.params = Namespace()
         self.params.n_rep = getattr(params, 'n_rep', 1)
+        self.params.seed = self.seed
 
     def set_data(self, data):
         """Set self.data, the dataset to be modeled."""
