@@ -85,7 +85,7 @@ def get_branin_domain():
     return get_branin_domain_nd(2)
 
 
-def get_branin_domain_nd(ndimx):
+def get_branin_domain_nd(ndimx, verbose=True):
     """Return domain for ndimx-dimensional Branin"""
 
     if ndimx % 2 == 1:
@@ -93,6 +93,19 @@ def get_branin_domain_nd(ndimx):
 
     min_max = [(-5, 10), (0, 15)] * (ndimx // 2)
     domp = Namespace(dom_str='real', min_max=min_max)
-    domain = RealDomain(domp, True)
+    domain = RealDomain(domp, verbose=verbose)
 
     return domain
+
+
+def get_branin_product_domain(ndimx, n_prod):
+    """Return product domain for ndimx-dimensional Branin."""
+    domain_list = get_branin_product_domain_list(ndimx, n_prod)
+    domain = ProductDomain(domain_list=domain_list)
+    return domain
+
+
+def get_branin_product_domain_list(ndimx, n_prod):
+    """Return ProductDomain domain_list for ndimx-dimensional Branin."""
+    domain_list = [get_branin_domain_nd(ndimx // n_prod, False) for _ in range(n_prod)]
+    return domain_list

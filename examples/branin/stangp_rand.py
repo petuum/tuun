@@ -1,5 +1,8 @@
-from tuun import Tuun, StanGp, AcqOptimizer, SimpleBo
+from tuun import StanGp, AcqOptimizer, SimpleBo
 from examples.branin.branin import branin, get_branin_domain
+
+# define function
+f = branin
 
 # define model
 model = StanGp(
@@ -21,12 +24,6 @@ acqfunction = {'acq_str': 'ei', 'n_gen': 500}
 # define acqoptimizer
 acqoptimizer = AcqOptimizer(domain=get_branin_domain())
 
-# define tuun
-tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=11)
-
-# define function
-f = branin
-
 # define and run BO
-bo = SimpleBo(tu, f, params={'n_iter': 50})
+bo = SimpleBo(f, model, acqfunction, acqoptimizer, params={'n_iter': 50}, seed=11)
 results = bo.run()

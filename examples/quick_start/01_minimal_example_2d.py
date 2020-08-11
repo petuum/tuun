@@ -1,4 +1,4 @@
-from tuun import Tuun, AcqOptimizer, SimpleGp
+from tuun import AcqOptDesigner, AcqOptimizer, SimpleGp
 import numpy as np
 
 # define model
@@ -22,9 +22,9 @@ data = {
     'y': [6.0, 3.0, 4.0, 5.0, 2.0],
 }
 
-# define tuun
-tu = Tuun(model, acqfunction, acqoptimizer, data)
+# define designer
+designer = AcqOptDesigner(model, acqfunction, acqoptimizer, data)
 
 # get acquisition optima
-acq_optima = tu.get()
+acq_optima = designer.get()
 print('acq_optima: {}'.format(acq_optima))

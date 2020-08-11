@@ -1,8 +1,11 @@
-from tuun import Tuun, GpytorchGp, AcqOptimizer, SimpleBo
+from tuun import GpytorchGp, AcqOptimizer, SimpleBo
 from examples.branin.branin import branin, get_branin_domain
 
 # define seed
 seed = 11
+
+# define function
+f = branin
 
 # define model
 model = GpytorchGp({'seed': seed})
@@ -13,12 +16,6 @@ acqfunction = {'acq_str': 'ucb', 'n_gen': 500}
 # define acqoptimizer
 acqoptimizer = AcqOptimizer(domain=get_branin_domain())
 
-# define tuun
-tu = Tuun(model, acqfunction, acqoptimizer, data=None, seed=seed)
-
-# define function
-f = branin
-
 # define and run BO
-bo = SimpleBo(tu, f, params={'n_iter': 50})
+bo = SimpleBo(f, model, acqfunction, acqoptimizer, params={'n_iter': 50}, seed=seed)
 results = bo.run()
