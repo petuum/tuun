@@ -1,37 +1,37 @@
 """
-Code for tuun.
+Code for ProBO.
 """
 
-from .probo import (
+from .acq import (
     AcqFunction,
     AcqOptimizer,
+    SpoAcqOptimizer,
     CobylaAcqOptimizer,
     NelderMeadAcqOptimizer,
-    SpoAcqOptimizer,
     ProductAcqOptimizer,
-    ListDomain,
-    RealDomain,
-    ProductDomain,
-    SimpleGp,
-    SimpleBo,
-    AcqOptDesigner,
 )
+from .sequence import SimpleBo
+from .domain import RealDomain, ListDomain, ProductDomain
+from .models import SimpleGp
+from .design import AcqOptDesigner
 
-# ProBO Stan models
+# Stan models
 try:
-    from .probo import StanGp, StanProductGp
+    from .models import StanGp
+    from .models import StanProductGp
 except:
     pass
 
 # Scikit-learn models
 try:
-    from .probo import SklearnPenn
+    from .models import SklearnPenn
 except:
     pass
 
 # Gpytorch models
 try:
-    from .probo import GpytorchGp, GpytorchProductGp
+    from .models import GpytorchGp
+    from .models import GpytorchProductGp
 except:
     pass
 
@@ -42,7 +42,6 @@ __all__ = [
     'CobylaAcqOptimizer',
     'NelderMeadAcqOptimizer',
     'SpoAcqOptimizer',
-    'ProductAcqOptimizer',
     'ListDomain',
     'RealDomain',
     'ProductDomain',
