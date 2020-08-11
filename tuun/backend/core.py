@@ -13,9 +13,9 @@ class Backend(ABC):
         pass
 
     @abstractmethod
-    def tune_function(self):
+    def minimize_function(self):
         pass
 
     @abstractmethod
-    def suggest(self):
+    def suggest_to_minimize(self):
         pass

@@ -1,5 +1,5 @@
 """
-Code for ProBO as the backend tuning system.
+Code for using ProBO as the backend tuning system.
 """
 
 import tuun.probo as probo
@@ -37,11 +37,11 @@ class ProboBackend(Backend):
         self.domain_config = domain_config
         self.probo_config = probo_config
 
-    def tune_function(
+    def minimize_function(
         self, f, n_iter=10, data=None, data_update_fun=None, verbose=True, seed=None
     ):
         """
-        Run ProBO Bayesian optimization on function f.
+        Run ProBO Bayesian optimization to minimize function f.
 
         Parameters
         ----------
@@ -79,7 +79,7 @@ class ProboBackend(Backend):
         results = bo.run()
         return results
 
-    def suggest(self, data=None, verbose=True, seed=None):
+    def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
         Run ProBO AcqOptDesigner to suggest a design (i.e. a point to evaluate).
 

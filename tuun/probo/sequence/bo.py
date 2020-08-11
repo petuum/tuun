@@ -140,8 +140,8 @@ class SimpleBo:
         min_idx = np.argmin(self.data.y)
         min_x = self.data.x[min_idx]
         min_y = self.data.y[min_idx]
-        print('Minimum x = {}'.format(min_x))
         print('Minimum y = {}'.format(min_y))
+        print('Minimizer x = {}'.format(min_x))
         print('Found at i = {}'.format(min_idx))
 
     def get_final_results(self):

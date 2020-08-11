@@ -11,4 +11,4 @@ data = {
 }
 
 pb = ProboBackend(model_config, acqfunction_config, acqoptimizer_config, domain_config)
-suggestion = pb.suggest(data)
+suggestion = pb.suggest_to_minimize(data)

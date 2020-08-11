@@ -18,4 +18,4 @@ domain_config = {'min_max': [(-10, 10)]}
 f = lambda x: x ** 4 - x ** 2 + 0.1 * x
 
 pb = ProboBackend(model_config, acqfunction_config, acqoptimizer_config, domain_config)
-results = pb.tune_function(f, 20, seed=11)
+results = pb.minimize_function(f, 20, seed=11)
