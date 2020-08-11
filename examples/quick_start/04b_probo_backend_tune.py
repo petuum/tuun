@@ -1,6 +1,6 @@
 from tuun.backend import ProboBackend
 
-model_config={
+model_config = {
     'name': 'stangp',
     'ndimx': 1,
     'model_str': 'optfixedsig',

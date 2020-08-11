@@ -1,6 +1,6 @@
 from tuun.backend import ProboBackend
 
-model_config={'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5}
+model_config = {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5}
 acqfunction_config = {'name': 'default', 'acq_str': 'ei'}
 acqoptimizer_config = {'name': 'default', 'max_iter': 200}
 domain_config = {'min_max': [(-5, 5)]}

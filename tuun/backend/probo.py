@@ -161,7 +161,7 @@ class ProboBackend(Backend):
         """
         name = self.acqoptimizer_config['name']
         assert name in ['default', 'cobyla', 'neldermead']
-        #assert name in ['acqoptimizer', 'spoacqoptimizer', 'productacqoptimizer']
+        # assert name in ['acqoptimizer', 'spoacqoptimizer', 'productacqoptimizer']
 
         if name == 'default':
             acqoptimizer = probo.AcqOptimizer(

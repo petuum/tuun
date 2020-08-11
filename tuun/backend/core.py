@@ -4,6 +4,7 @@ Abstract classes for backends.
 
 from abc import ABC, abstractmethod
 
+
 class Backend(ABC):
     """Abstract class for backend tuning system."""
 
