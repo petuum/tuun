@@ -73,7 +73,7 @@ class SpoAcqOptimizer(AcqOptimizer):
             return self.domain.unif_rand_sample(1)[0]
 
         # Ensure correct format
-        data.x = list(data.x)
+        data.x = [np.array(xi).reshape(-1) for xi in data.x]
         data.y = np.array(data.y)
 
         # TODO: ensure data.y isn't empty
