@@ -159,21 +159,93 @@ class ProboBackend(Backend):
         """
         Return ProBO acqoptimizer based on self.acqoptimizer_config.
         """
-        name = self.acqoptimizer_config['name']
-        assert name in ['default', 'cobyla', 'neldermead']
-        # assert name in ['acqoptimizer', 'spoacqoptimizer', 'productacqoptimizer']
+        ao_name = self.acqoptimizer_config['name']
+        pao_config_list = self.acqoptimizer_config.get('pao_config_list')
 
-        if name == 'default':
-            acqoptimizer = probo.AcqOptimizer(
-                self.acqoptimizer_config, self.domain_config
+        dom_name = self.domain_config['name']
+        dom_config_list = self.domain_config.get('dom_config_list')
+
+        # For product acqoptimizer
+        if (
+            ao_name == 'product'
+            or dom_name == 'product'
+            or pao_config_list
+            or dom_config_list
+        ):
+
+            # Ensure correct dom_config_list
+            if type(dom_config_list) is not list:
+                assert type(pao_config_list) is list
+                dom_config_list = [self.domain_config] * len(pao_config_list)
+
+            n_domain = len(dom_config_list)
+
+            # Ensure correct pao_config_list
+            if type(pao_config_list) is list:
+                if len(pao_config_list) == n_domain:
+                    pass
+                elif len(pao_config_list) == 1:
+                    pao_config_list = pao_config_list * n_domain
+                else:
+                    raise ValueError(
+                        'self.acqoptimizer_config.pao_config_list list needs to have length either 1 or len(self.domain_config)'
+                    )
+            else:
+                pao_config_list = [self.acqoptimizer_config] * n_domain
+
+            acqoptimizer = self._get_product_acqoptimizer(
+                dom_config_list, pao_config_list, self.acqoptimizer_config
             )
-        elif name == 'cobyla':
-            acqoptimizer = probo.CobylaAcqOptimizer(
-                self.acqoptimizer_config, self.domain_config
-            )
-        elif name == 'neldermead':
-            acqoptimizer = probo.NelderMeadAcqOptimizer(
+
+        # For single (non-product) acqoptimizer
+        else:
+            acqoptimizer = self._get_single_acqoptimizer(
                 self.acqoptimizer_config, self.domain_config
             )
 
         return acqoptimizer
+
+    def _get_product_acqoptimizer(self, dom_config_list, pao_config_list, pao_config):
+        """Return ProductAcqOptimizer."""
+        acqoptimizer_list = []
+        for dom_config, ao_config in zip(dom_config_list, pao_config_list):
+            acqoptimizer_single = self._get_single_acqoptimizer(ao_config, dom_config)
+            acqoptimizer_list.append(acqoptimizer_single)
+
+        acqoptimizer = probo.ProductAcqOptimizer(acqoptimizer_list, pao_config)
+        return acqoptimizer
+
+    def _get_single_acqoptimizer(self, ao_config, dom_config):
+        """
+        Return a single (non-product) ProBO acqoptimize.
+
+        Parameters
+        ----------
+        ao_config : dict
+            A dict containing config for a single (non-product) acqoptimizer.
+        dom_config : dict
+            A dict containing config for a single (non-product) domain.
+        """
+        name = ao_config['name']
+        assert name in ['default', 'cobyla', 'neldermead']
+
+        domain = self._get_domain(dom_config)
+
+        if name == 'default':
+            acqoptimizer = probo.AcqOptimizer(ao_config, domain)
+        elif name == 'cobyla':
+            acqoptimizer = probo.CobylaAcqOptimizer(ao_config, domain)
+        elif name == 'neldermead':
+            acqoptimizer = probo.NelderMeadAcqOptimizer(ao_config, domain)
+
+        return acqoptimizer
+
+    def _get_domain(self, dom_config):
+        """Return Domain instance."""
+        dom_name = dom_config['name']
+        assert dom_name in ['real']
+
+        if dom_name == 'real':
+            domain = probo.RealDomain(dom_config)
+
+        return domain
