@@ -13,7 +13,7 @@ model_config = {
 }
 acqfunction_config = {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500}
 acqoptimizer_config = {'name': 'cobyla', 'rand_every': 4, 'jitter': True}
-domain_config = {'min_max': [(-10, 10)]}
+domain_config = {'name': 'real', 'min_max': [(-10, 10)]}
 
 f = lambda x: x ** 4 - x ** 2 + 0.1 * x
 
