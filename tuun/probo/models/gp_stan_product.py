@@ -6,7 +6,7 @@ domains.
 import numpy as np
 import copy
 
-from probo.models.gp_stan import StanGp
+from .gp_stan import StanGp
 
 
 class StanProductGp(StanGp):

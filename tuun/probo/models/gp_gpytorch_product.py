@@ -6,7 +6,7 @@ domains.
 import numpy as np
 import copy
 
-from probo.models.gp_gpytorch import GpytorchGp
+from .gp_gpytorch import GpytorchGp
 
 
 class GpytorchProductGp(GpytorchGp):
