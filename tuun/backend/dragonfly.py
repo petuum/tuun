@@ -80,36 +80,88 @@ class DragonflyBackend(Backend):
 
         return suggestion
 
-    def _get_domain(self):
-        """
-        Return Dragonfly domain based on self.domain_config.
-        """
-        name = self.domain_config['name']
-        assert name in ['euc']
-
-        if name == 'euc':
-            bounds_list = self.domain_config['bounds_list']
-            domain = dragonfly.exd.domains.EuclideanDomain(bounds_list)
-
-        return domain
-
     def _get_opt(self):
         """
         Return Dragonfly optimizer based on self.opt_config.
         """
         name = self.opt_config['name']
-        assert name in ['euc']
+        assert name in ['real', 'product']
 
-        domain = self._get_domain()
-        func_caller = dragonfly.exd.experiment_caller.EuclideanFunctionCaller(
-            None, domain
-        )
-        opt = dragonfly.opt.gp_bandit.EuclideanGPBandit(func_caller, ask_tell_mode=True)
+        if name == 'real':
+            domain = self._get_domain()
+            func_caller = dragonfly.exd.experiment_caller.EuclideanFunctionCaller(
+                None, domain
+            )
+            opt = dragonfly.opt.gp_bandit.EuclideanGPBandit(func_caller, ask_tell_mode=True)
+
+        elif name == 'product':
+            domain, domain_orderings = self._get_cpgp_domain_and_orderings()
+            func_caller = dragonfly.exd.experiment_caller.CPFunctionCaller(
+                None, domain, domain_orderings=domain_orderings
+            )
+            opt = dragonfly.opt.gp_bandit.CPGPBandit(func_caller, ask_tell_mode=True)
+
         opt.initialise()
-
         return opt
 
     def _tell_opt_data(self, opt, data):
         """Tell opt all elements in data."""
         tell_list = [(data['x'][i], data['y'][i]) for i in range(len(data['x']))]
         opt.tell(tell_list)
+
+    def _get_domain(self):
+        """
+        Return Dragonfly domain based on self.domain_config.
+        """
+        name = self.domain_config['name']
+        assert name in ['real']
+
+        if name == 'real':
+            bounds_list = self.domain_config['bounds_list']
+            domain = dragonfly.exd.domains.EuclideanDomain(bounds_list)
+
+        return domain
+
+    def _get_cpgp_domain_and_orderings(self):
+        """
+        Return Dragonfly domain and domain_orderings based on self.domain_config.
+        """
+        name = self.domain_config['name']
+        assert name in ['product']
+
+        if name == 'product':
+            parsed_params = self._parse_domain_config_for_dragonfly()
+            parsed_config = dragonfly.exd.cp_domain_utils.load_config(parsed_params)
+            domain = parsed_config.domain
+            domain_orderings = parsed_config.domain_orderings
+
+        return domain, domain_orderings
+
+    def _parse_domain_config_for_dragonfly(self):
+        """
+        Parse self.domain_config into correct format for dragonfly.
+        """
+
+        name = self.domain_config['name']
+        assert name in ['product']
+
+        if name == 'product':
+            parsed_dom_dict_list = []
+            dom_config_list = self.domain_config['dom_config_list']
+            for dom_idx, dom_config in enumerate(dom_config_list):
+                parsed_dom_dict = {}
+                if dom_config['name'] == 'real':
+                    parsed_dom_dict['name'] = 'float' + str(dom_idx)
+                    parsed_dom_dict['type'] = 'float'
+                    min_max = dom_config['min_max']
+                    assert len(min_max) == 1
+                    parsed_dom_dict['min'] = min_max[0][0]
+                    parsed_dom_dict['max'] = min_max[0][1]
+
+                parsed_dom_dict_list.append(parsed_dom_dict)
+
+            parsed_config = {}
+            parsed_config['name'] = 'domain_config'
+            parsed_config['domain'] = parsed_dom_dict_list
+
+        return parsed_config
