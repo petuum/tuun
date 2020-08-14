@@ -1,7 +1,7 @@
 from tuun.backend import DragonflyBackend
 
-domain_config = {'name': 'euc', 'bounds_list': [(-8.0, 7.0), (-7.0, 8.0)]}
-opt_config = {'name': 'euc'}
+domain_config = {'name': 'real', 'bounds_list': [(-8.0, 7.0), (-7.0, 8.0)]}
+opt_config = {'name': 'real'}
 
 data = {
     'x': [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]],
