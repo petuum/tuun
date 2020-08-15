@@ -44,9 +44,14 @@ class DragonflyBackend(Backend):
 
         domain = self._get_domain()
         opt_method = 'bo'
+        parsed_config = self._get_parsed_config()
 
         opt_val, opt_pt, history = dragonfly.minimise_function(
-            func=f, domain=domain, max_capital=n_iter, opt_method=opt_method
+            func=f,
+            domain=domain,
+            max_capital=n_iter,
+            opt_method=opt_method,
+            config=parsed_config,
         )
         results = Namespace(opt_val=opt_val, opt_pt=opt_pt, history=history)
 
@@ -110,17 +115,29 @@ class DragonflyBackend(Backend):
         opt.tell(tell_list)
 
     def _get_domain(self):
-        """
-        Return Dragonfly domain based on self.domain_config.
-        """
+        """Return Dragonfly domain based on self.domain_config."""
         name = self.domain_config['name']
-        assert name in ['real']
+        assert name in ['real', 'product']
 
         if name == 'real':
             bounds_list = self.domain_config['bounds_list']
             domain = dragonfly.exd.domains.EuclideanDomain(bounds_list)
+        elif name == 'product':
+            domain, _ = self._get_cpgp_domain_and_orderings()
 
         return domain
+
+    def _get_parsed_config(self):
+        """Return Dragonfly parsed config."""
+        name = self.domain_config['name']
+        assert name in ['real', 'product']
+
+        if name == 'real':
+            parsed_config = None
+        elif name == 'product':
+            parsed_config = self._get_cpgp_parsed_config()
+
+        return parsed_config
 
     def _get_cpgp_domain_and_orderings(self):
         """
@@ -130,17 +147,14 @@ class DragonflyBackend(Backend):
         assert name in ['product']
 
         if name == 'product':
-            parsed_params = self._parse_domain_config_for_dragonfly()
-            parsed_config = dragonfly.exd.cp_domain_utils.load_config(parsed_params)
+            parsed_config = self._get_cpgp_parsed_config()
             domain = parsed_config.domain
             domain_orderings = parsed_config.domain_orderings
 
         return domain, domain_orderings
 
-    def _parse_domain_config_for_dragonfly(self):
-        """
-        Parse self.domain_config into correct format for dragonfly.
-        """
+    def _get_cpgp_parsed_config(self):
+        """Parse self.domain_config into correct format for dragonfly."""
 
         name = self.domain_config['name']
         assert name in ['product']
@@ -164,4 +178,5 @@ class DragonflyBackend(Backend):
             parsed_config['name'] = 'domain_config'
             parsed_config['domain'] = parsed_dom_dict_list
 
+        parsed_config = dragonfly.exd.cp_domain_utils.load_config(parsed_config)
         return parsed_config
