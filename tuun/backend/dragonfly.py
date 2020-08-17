@@ -45,6 +45,7 @@ class DragonflyBackend(Backend):
         domain = self._get_domain()
         opt_method = 'bo'
         parsed_config = self._get_parsed_config()
+        options = self._get_options()
 
         opt_val, opt_pt, history = dragonfly.minimise_function(
             func=f,
@@ -52,6 +53,7 @@ class DragonflyBackend(Backend):
             max_capital=n_iter,
             opt_method=opt_method,
             config=parsed_config,
+            options=options,
         )
         results = Namespace(opt_val=opt_val, opt_pt=opt_pt, history=history)
 
@@ -77,6 +79,7 @@ class DragonflyBackend(Backend):
             If True, print information.
         """
         opt = self._get_opt()
+        assert opt.options.num_init_evals == 0.
         self._tell_opt_data(opt, data)
         suggestion = opt.ask()
 
@@ -92,13 +95,20 @@ class DragonflyBackend(Backend):
         name = self.opt_config['name']
         assert name in ['real', 'product']
 
+        options = self._get_options()
+
         if name == 'real':
             domain = self._get_domain()
             func_caller = dragonfly.exd.experiment_caller.EuclideanFunctionCaller(
                 None, domain
             )
+            options = dragonfly.apis.api_utils.load_options_for_method(
+                'bo', 'opt', domain, 'num_evals', options
+            )
             opt = dragonfly.opt.gp_bandit.EuclideanGPBandit(
-                func_caller, ask_tell_mode=True
+                func_caller,
+                options=options,
+                ask_tell_mode=True,
             )
 
         elif name == 'product':
@@ -106,14 +116,22 @@ class DragonflyBackend(Backend):
             func_caller = dragonfly.exd.experiment_caller.CPFunctionCaller(
                 None, domain, domain_orderings=domain_orderings
             )
-            opt = dragonfly.opt.gp_bandit.CPGPBandit(func_caller, ask_tell_mode=True)
+            options = dragonfly.apis.api_utils.load_options_for_method(
+                'bo', 'opt', domain, 'num_evals', options
+            )
+            opt = dragonfly.opt.gp_bandit.CPGPBandit(
+                func_caller,
+                options=options,
+                ask_tell_mode=True,
+            )
 
         opt.initialise()
         return opt
 
     def _tell_opt_data(self, opt, data):
         """Tell opt all elements in data."""
-        tell_list = [(data['x'][i], data['y'][i]) for i in range(len(data['x']))]
+        # NOTE: To minimize, must multiply data['y'] by -1
+        tell_list = [(data['x'][i], -1 * data['y'][i]) for i in range(len(data['x']))]
         opt.tell(tell_list)
 
     def _get_domain(self):
@@ -182,3 +200,24 @@ class DragonflyBackend(Backend):
 
         parsed_config = dragonfly.exd.cp_domain_utils.load_config(parsed_config)
         return parsed_config
+
+    def _get_options(self):
+        """Get additional Dragonfly options."""
+
+        # Using options contained in self.dragonfly_config
+        options_dict = self.dragonfly_config
+        if isinstance(options_dict, Namespace):
+            options_dict = vars(options_dict)
+
+        if options_dict is not None:
+            options = Namespace()
+            if 'n_init_rs' in options_dict:
+                options.init_capital = None
+                options.num_init_evals = options_dict['n_init_rs']
+            if 'acq_str' in options_dict:
+                options.acq = options_dict['acq_str']
+        else:
+            options = None
+
+        return options
+
