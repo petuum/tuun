@@ -13,4 +13,4 @@ f_s = lambda x: x ** 4 - x ** 2 + 0.1 * x
 f = lambda x_list: f_s(x_list[0]) + f_s(x_list[1])
 
 db = DragonflyBackend(domain_config, opt_config)
-results = db.minimize_function(f, 20)
+results = db.minimize_function(f, 50)
