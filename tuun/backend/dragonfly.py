@@ -97,7 +97,9 @@ class DragonflyBackend(Backend):
             func_caller = dragonfly.exd.experiment_caller.EuclideanFunctionCaller(
                 None, domain
             )
-            opt = dragonfly.opt.gp_bandit.EuclideanGPBandit(func_caller, ask_tell_mode=True)
+            opt = dragonfly.opt.gp_bandit.EuclideanGPBandit(
+                func_caller, ask_tell_mode=True
+            )
 
         elif name == 'product':
             domain, domain_orderings = self._get_cpgp_domain_and_orderings()

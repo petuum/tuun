@@ -126,10 +126,10 @@ class ProductAcqOptimizer:
                 # Update nextpt with ao.optimize
                 nextpt[j] = ao.optimize(am, data_j)
 
-                #if self.params.print_delta:
-                    #acq_delta = acqmap([nextpt])[0] - acqmap([nextpt_ckpt])[0]
-                    #print(('  Acq delta: {:.7f} = (final acq - init acq) ' +
-                           #'[block ckpt]').format(acq_delta))
+                # if self.params.print_delta:
+                # acq_delta = acqmap([nextpt])[0] - acqmap([nextpt_ckpt])[0]
+                # print(('  Acq delta: {:.7f} = (final acq - init acq) ' +
+                #'[block ckpt]').format(acq_delta))
 
         if self.params.print_delta:
             self.print_acq_delta(acqmap, initpt, nextpt)
