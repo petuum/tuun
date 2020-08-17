@@ -3,6 +3,7 @@ Code for using Dragonfly as the backend tuning system.
 """
 
 from argparse import Namespace
+import numpy as np
 import dragonfly
 
 from .core import Backend
@@ -28,7 +29,7 @@ class DragonflyBackend(Backend):
         self.opt_config = opt_config
         self.dragonfly_config = dragonfly_config
 
-    def minimize_function(self, f, n_iter=10, verbose=True):
+    def minimize_function(self, f, n_iter=10, verbose=True, seed=None):
         """
         Run Dragonfly Bayesian optimization to minimize function f.
 
@@ -40,7 +41,11 @@ class DragonflyBackend(Backend):
             Number of iterations of Bayesian optimization.
         verbose : bool
             If True, print information.
+        seed : int
+            If not None, set the random seed to seed.
         """
+        if seed is not None:
+            np.random.seed(seed)
 
         domain = self._get_domain()
         opt_method = 'bo'
@@ -67,7 +72,7 @@ class DragonflyBackend(Backend):
 
         return results
 
-    def suggest_to_minimize(self, data=None, verbose=True):
+    def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
         Run Dragonfly AcqOptDesigner to suggest a design (i.e. a point to evaluate).
 
@@ -77,7 +82,12 @@ class DragonflyBackend(Backend):
             Dictionary with keys x (list) and y (1D numpy ndarray).
         verbose : bool
             If True, print information.
+        seed : int
+            If not None, set the random seed to seed.
         """
+        if seed is not None:
+            np.random.seed(seed)
+
         opt = self._get_opt()
         assert opt.options.num_init_evals == 0.
         self._tell_opt_data(opt, data)
