@@ -82,7 +82,7 @@ class Tuun:
                 domain_config=self.config.domain_config,
                 probo_config=self.config.probo_config,
             )
-        elif self.config.bakend == 'dragonfly':
+        elif self.config.backend == 'dragonfly':
             self.backend = DragonflyBackend(
                 domain_config=self.config.domain_config,
                 opt_config=self.config.opt_config,
@@ -156,3 +156,5 @@ class Tuun:
                 verbose=verbose,
                 seed=seed,
             )
+
+        return result
