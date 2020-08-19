@@ -7,7 +7,7 @@ from .backend import ProboBackend, DragonflyBackend
 
 
 class Tuun:
-    """Class for Tuun."""
+    """Main interface to Tuun."""
 
     def __init__(self, config_dict):
         """
