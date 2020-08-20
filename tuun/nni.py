@@ -1,6 +1,9 @@
 """
 Tuun wrapped as a custom Tuner for NNI.
 """
+from argparse import Namespace
+import numbers
+import copy
 from nni.tuner import Tuner
 from nni.utils import OptimizeMode, extract_scalar_reward
 
@@ -31,9 +34,18 @@ class TuunTuner(Tuner):
     def _set_data(initial_data):
         """Set self.data."""
         if initial_data is None:
-            self.data = {x:[], y:np.array([])}  #  TODO
+            self.data = Namespace(x=[], y=[])
         else:
-            self.data = initial_data
+            initial_data = copy.deepcopy(initial_data)
+            if isinstance(initial_data, dict):
+                initial_data = Namespace(**initial_data)
+                self.data = initial_data
+            elif isinstance(initial_data, Namespace):
+                self.data = initial_data
+            else:
+                raise TypeError(
+                    'initial_data must be either a dict, Namespace, or None'
+                )
 
     def update_search_space(self, search_space):
         """
@@ -62,8 +74,8 @@ class TuunTuner(Tuner):
             A set of (hyper-)parameters suggested by Tuun.
         """
         suggestion = self.tuun.suggest_to_minimize(self.data)
-        #  TODO : parse suggestion into dict, with correct format for NNI
-        #  TODO : return the parsed dict
+        parsed_dict = self._parse_suggestion_into_dict(suggestion)
+        return parsed_dict
 
     def receive_trial_result(self, parameter_id, parameters, value, **kwargs):
         """
@@ -79,6 +91,26 @@ class TuunTuner(Tuner):
             Final  evaluation/objective metric of the trial. If value is dict, it should
             have "default" key.
         """
-        #  TODO : define y: if value is dict, convert to float.
-        #  TODO : define x parse parameters, and convert to correct format for x.
-        #  TODO : update self.data.x and self.data.y
+
+        # Define y
+        if isinstance(value, dict):
+            y = float(value['default'])
+        elif isinstance(value, numbers.Number):
+            y = float(value)
+        else:
+            raise TypeError('value must be a Number or dict with "default" key')
+
+        # Define x
+        x = parameters['suggestion']
+
+        # Update self.data
+        self.data.x.append(x)
+        self.data.y.append(y)
+
+    def _parse_suggestion_into_dict(self, suggestion):
+        """Parse suggestion from Tuun into dict for NNI."""
+
+        # Keep things simple for now
+        parsed_dict = {'suggestion': suggestion}
+
+        return parsed_dict
