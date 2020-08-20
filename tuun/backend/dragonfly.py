@@ -89,7 +89,7 @@ class DragonflyBackend(Backend):
             np.random.seed(seed)
 
         opt = self._get_opt()
-        assert opt.options.num_init_evals == 0.
+        assert opt.options.num_init_evals == 0.0
         self._tell_opt_data(opt, data)
         suggestion = opt.ask()
 
@@ -116,9 +116,7 @@ class DragonflyBackend(Backend):
                 'bo', 'opt', domain, 'num_evals', options
             )
             opt = dragonfly.opt.gp_bandit.EuclideanGPBandit(
-                func_caller,
-                options=options,
-                ask_tell_mode=True,
+                func_caller, options=options, ask_tell_mode=True,
             )
 
         elif name == 'product':
@@ -130,9 +128,7 @@ class DragonflyBackend(Backend):
                 'bo', 'opt', domain, 'num_evals', options
             )
             opt = dragonfly.opt.gp_bandit.CPGPBandit(
-                func_caller,
-                options=options,
-                ask_tell_mode=True,
+                func_caller, options=options, ask_tell_mode=True,
             )
 
         opt.initialise()
@@ -230,4 +226,3 @@ class DragonflyBackend(Backend):
             options = None
 
         return options
-
