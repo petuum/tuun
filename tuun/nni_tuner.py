@@ -7,7 +7,7 @@ import copy
 from nni.tuner import Tuner
 from nni.utils import OptimizeMode, extract_scalar_reward
 
-from .main import Tuun
+from tuun.main import Tuun
 
 
 class TuunTuner(Tuner):
@@ -31,7 +31,7 @@ class TuunTuner(Tuner):
         """Configure and instantiate self.tuun."""
         self.tuun = Tuun(tuun_config)
 
-    def _set_data(initial_data):
+    def _set_data(self, initial_data):
         """Set self.data."""
         if initial_data is None:
             self.data = Namespace(x=[], y=[])
