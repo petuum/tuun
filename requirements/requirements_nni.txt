@@ -1,0 +1,3 @@
+-r requirements.txt
+
+nni>=1.7.1
