@@ -43,7 +43,6 @@ class SpoAcqOptimizer(AcqOptimizer):
         self.params.k = getattr(params, 'k', 2)  # for topk
         self.params.max_iter = getattr(params, 'max_iter', 1000)  # for spo.minimize
         self.params.rhobeg = getattr(params, 'rhobeg', 0.5)  # for spo.minimize
-        self.params.n_opt_calls = getattr(params, 'n_opt_calls', 0)  # can start on > 0
         self.params.jitter = getattr(params, 'jitter', False)  # to jitter init point
         self.params.jitter_val = getattr(params, 'jitter_val', 0.1)  # init jitter amt
         self.params.domain_params = getattr(params, 'domain_params', None)  # TODO
@@ -59,7 +58,7 @@ class SpoAcqOptimizer(AcqOptimizer):
 
     def setup_optimize(self):
         """Setup for self.optimize method"""
-        self.params.n_opt_calls += 1
+        pass
 
     def optimize(self, acqmap, data):
         """Optimize acqfunction over x in domain"""
@@ -83,9 +82,9 @@ class SpoAcqOptimizer(AcqOptimizer):
             # Initialization with best-so-far strategy
 
             if self.params.rand_every is None:
-                self.params.rand_every = self.params.n_opt_calls + 1
+                self.params.rand_every = len(data.x) + 1
 
-            if self.params.n_opt_calls % self.params.rand_every == 0:
+            if len(data.x) % self.params.rand_every == 0:
                 init_point = self.domain.unif_rand_sample()[0]
             else:
                 init_point = bsf_point
