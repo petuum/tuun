@@ -1,0 +1,62 @@
+authorName: default
+experimentName: simple_experiment_product
+trialConcurrency: 1
+maxExecDuration: 1h
+maxTrialNum: 50
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space.json
+#choice: true, false
+useAnnotation: false
+#tuner:
+  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  ##SMAC (SMAC should be installed through nnictl)
+  #builtinTunerName: TPE
+  #classArgs:
+    ##choice: maximize, minimize
+    #optimize_mode: maximize
+tuner:
+  codeDir: /home/ubuntu/proj/tuun-dev/tuun
+  classFileName: nni_tuner.py
+  className: TuunTuner
+  # Any parameter need to pass to your tuner class __init__ constructor
+  # can be specified in this optional classArgs field, for example
+  classArgs:
+    tuun_config: {
+        'backend': 'probo',
+        #'model_config': {'name': 'gpytorchproductgp'},
+        'model_config': {
+            'name': 'stanproductgp',
+            'ndimx': 2,
+            'model_str': 'optfixedsig',
+            'ig1': 4.0,
+            'ig2': 3.0,
+            'n1': 1.0,
+            'n2': 1.0,
+            'sigma': 1e-5,
+            'niter': 70,
+        },
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb'},
+        'acqoptimizer_config': {
+            'name': 'product',
+            'n_iter_bcd': 3,
+            'n_init_rs': 5,
+            'rand_every': 4,
+            'pao_config_list': [
+                {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': True, 'jitter_val': 0.05},
+                #{'name': 'default'},
+                {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': True, 'jitter_val': 0.05},
+            ],
+        },
+        'domain_config': {
+            'name': 'product',
+            'dom_config_list': [
+                {'name': 'real', 'min_max': [[-10, 10]]},
+                {'name': 'real', 'min_max': [[-4, 4]]},
+            ],
+        },
+    } 
+trial:
+  command: python trial.py
+  codeDir: .
+  gpuNum: 0
