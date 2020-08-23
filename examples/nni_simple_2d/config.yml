@@ -1,0 +1,47 @@
+authorName: default
+experimentName: simple_experiment_2d
+trialConcurrency: 1
+maxExecDuration: 1h
+maxTrialNum: 50
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space.json
+#choice: true, false
+useAnnotation: false
+#tuner:
+  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  ##SMAC (SMAC should be installed through nnictl)
+  #builtinTunerName: TPE
+  #classArgs:
+    ##choice: maximize, minimize
+    #optimize_mode: maximize
+tuner:
+  codeDir: /home/ubuntu/proj/tuun-dev/tuun
+  classFileName: nni_tuner.py
+  className: TuunTuner
+  # Any parameter need to pass to your tuner class __init__ constructor
+  # can be specified in this optional classArgs field, for example
+  classArgs:
+    tuun_config: {
+        'backend': 'probo',
+        #'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
+        'model_config': {
+            'name': 'stangp',
+            'ndimx': 2,
+            'model_str': 'optfixedsig',
+            'ig1': 4.0,
+            'ig2': 3.0,
+            'n1': 1.0,
+            'n2': 1.0,
+            'sigma': 1e-5,
+            'niter': 70,
+        },
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb'},
+        #'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
+        'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
+        'domain_config': {'name': 'real', 'min_max': [[-10.0, 10.0], [-4.0, 4.0]]},
+    } 
+trial:
+  command: python trial.py
+  codeDir: .
+  gpuNum: 0
