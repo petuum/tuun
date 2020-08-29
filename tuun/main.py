@@ -29,11 +29,11 @@ class Tuun:
         # Tuun parameters
         self.config.seed = getattr(config, 'seed', None)
 
-        assert config.backend in ['probo', 'dragonfly']
         self.config.backend = getattr(config, 'backend', 'probo')
+        assert self.config.backend in ['probo', 'dragonfly']
 
         # ProBO specific
-        if config.backend == 'probo':
+        if self.config.backend == 'probo':
 
             domain_config = getattr(config, 'domain_config', None)
             assert domain_config is not None
@@ -58,7 +58,7 @@ class Tuun:
             self.config.probo_config = probo_config
 
         # Dragonfly specific
-        if config.backend == 'dragonfly':
+        if self.config.backend == 'dragonfly':
 
             domain_config = getattr(config, 'domain_config', None)
             assert domain_config is not None

@@ -14,8 +14,33 @@ $ pip install -r requirements/requirements.txt
 Certain models in [`tuun/models/`](tuun/models/) may require [additional
 installation](tuun/models/README.md).
 
+To install all dependencies for development, run:
+```
+$ pip install -r requirements/requirements_dev.txt
+```
 
-## Quick Start
+## Quick Start - minimize
+Here is a minimal working example, which uses Tuun to optimize a function via Bayesian
+optimization using a Gaussian process (GP) model.
+```python
+from tuun.main import Tuun
+
+config = {
+    'seed': 11,
+    'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
+    'acqfunction_config': {'name': 'default', 'acq_str': 'ei'},
+    'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
+    'domain_config': {'name': 'real', 'min_max': [(-5, 5)]},
+}
+tu = Tuun(config)
+
+f = lambda x: x ** 4 - x ** 2 + 0.1 * x
+result = tu.minimize_function(f, 20)
+```
+This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.
+
+
+## Quick Start - components
 [Here](examples/quick_start/02_minimal_bo.py) is a minimal working example, which uses
 Tuun to optimize a function via Bayesian optimization using a Gaussian process (GP)
 model.
