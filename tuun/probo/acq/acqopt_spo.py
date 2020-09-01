@@ -138,6 +138,8 @@ class SpoAcqOptimizer(AcqOptimizer):
         if self.print_delta:
             self.print_acq_delta(acqmap, init_point, optima)
 
+        optima = self.post_process_optima(optima)
+
         return optima
 
     def possibly_apply_jitter(self, point_or_list):
@@ -164,6 +166,11 @@ class SpoAcqOptimizer(AcqOptimizer):
             ]
         )
         return point_mod
+
+    def post_process_optima(self, optima):
+        """Run post processing for found optima."""
+        optima = list(optima)
+        return optima
 
     def print_acq_delta(self, acqmap, init_point, optima):
         """Print acquisition function delta for optima minus initial point."""

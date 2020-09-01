@@ -62,8 +62,16 @@ class IntegralDomain:
 
     def unif_rand_sample(self, n=1):
         """Draws a sample uniformly at random from domain."""
-        li = [np.random.randint(mm[0], mm[1] + 1, n) for mm in self.params.min_max]
-        return list(np.array(li).T)
+        list_of_arr_per_dim = [
+            np.random.randint(mm[0], mm[1] + 1, n) for mm in self.params.min_max
+        ]
+        list_of_list_per_sample = [list(l) for l in np.array(list_of_arr_per_dim).T]
+
+        # convert from lists to floats if lists have 1 element
+        if len(list_of_arr_per_dim) == 1:
+            list_of_list_per_sample = [l[0] for l in list_of_list_per_sample]
+
+        return list_of_list_per_sample
 
     def print_str(self):
         """Print a description string."""

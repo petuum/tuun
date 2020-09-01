@@ -76,6 +76,7 @@ class SimpleBo:
         # Set defaults
         self.params = Namespace()
         self.params.n_iter = getattr(params, 'n_iter', 10)
+        self.params.reinit_designer = getattr(params, 'reinit_designer', False)
         self.params.seed = self.seed
 
     def set_designer(self, model, acqfunction, acqoptimizer, data):
@@ -88,11 +89,11 @@ class SimpleBo:
         """Set self.data_update_fun."""
         if data_update_fun is None:
 
-            def default_data_update_fun(x, y, data):
+            def _default_data_update_fun(x, y, data):
                 data.x.append(x)
                 data.y.append(y)
 
-            data_update_fun = default_data_update_fun
+            data_update_fun = _default_data_update_fun
 
         self.data_update_fun = data_update_fun
 
@@ -101,11 +102,17 @@ class SimpleBo:
         self.data_init = copy.deepcopy(self.designer.data)
         self.data = copy.deepcopy(self.data_init)
 
+        if self.data_init is None:
+            self.n_data_init = 0
+        else:
+            self.n_data_init = len(self.data_init.x)
+
     def set_verbose(self, verbose):
         """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
             self.print_str()
+            print('*Initialized with {} observations'.format(self.n_data_init))
 
     def run(self):
         """Run Bayesian optimization."""
@@ -113,13 +120,17 @@ class SimpleBo:
         # The BO loop
         for i in range(self.params.n_iter):
 
+            # Set designer
+            designer = self.get_designer_for_iter()
+
             # Choose next x and query f(x)
-            x = self.designer.get()
+            x = designer.get()
             y = self.f(x)
+            y = self.format_function_output(y)
 
             # Update data and reset data in designer
             self.data_update_fun(x, y, self.data)
-            self.designer.set_data(self.data)
+            designer.set_data(self.data)
 
             # Print iter info
             self.print_iter_info(i)
@@ -128,12 +139,40 @@ class SimpleBo:
         results = self.get_final_results()
         return results
 
+    def get_designer_for_iter(self):
+        """Return designer for an iteration of BO."""
+        if self.params.reinit_designer:
+            subseed = np.random.randint(13337)
+            designer = AcqOptDesigner(
+                self.designer.model,
+                self.designer.acqfunction,
+                self.designer.acqoptimizer,
+                self.data,
+                seed=subseed,
+                verbose=False
+            )
+        else:
+            designer = self.designer
+
+        return designer
+
+    def format_function_output(self, y_out):
+        """Format output of function query."""
+
+        # For now, function output y_out should be a float
+        y_out = float(y_out)
+        return y_out
+
     def print_iter_info(self, iter_idx):
         """Print information for a given iteration of Bayesian optimization."""
-        x = self.data.x[-1]
-        y = self.data.y[-1].item()
+        x_str_max_len = 14
+        x_str = str(self.data.x[-1])
+        x_str = x_str[:min(len(x_str), x_str_max_len)]
+        y = self.data.y[-1]
         bsf = np.min(self.data.y)
-        print('i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x, y, bsf))
+        print('i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(
+            iter_idx, x_str, y, bsf
+        ))
 
     def print_final_info(self):
         """Print final information after Bayesian optimization is complete."""
@@ -142,7 +181,7 @@ class SimpleBo:
         min_y = self.data.y[min_idx]
         print('Minimum y = {}'.format(min_y))
         print('Minimizer x = {}'.format(min_x))
-        print('Found at i = {}'.format(min_idx))
+        print('Found at i = {}'.format(min_idx - self.n_data_init))
 
     def get_final_results(self):
         """Return final results of a run of Bayesian optimization."""
@@ -150,6 +189,7 @@ class SimpleBo:
         results.min_idx = np.argmin(self.data.y)
         results.min_x = self.data.x[results.min_idx]
         results.min_y = self.data.y[results.min_idx]
+        results.data = self.data
         return results
 
     def print_str(self):

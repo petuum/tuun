@@ -12,7 +12,7 @@ import pystan
 def get_model(recompile=False, print_status=True):
     """Return stan model. Recompile model if recompile is True."""
 
-    model_file_str = 'tuun/models/stan/model_pkls/gp.pkl'
+    model_file_str = 'tuun/probo/models/stan/model_pkls/gp.pkl'
 
     if recompile:
         starttime = time.time()
