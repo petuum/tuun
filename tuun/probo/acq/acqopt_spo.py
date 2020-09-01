@@ -153,6 +153,10 @@ class SpoAcqOptimizer(AcqOptimizer):
 
     def get_jitter_point(self, point):
         """Return a jittered version of point."""
+
+        # Ensure point is a 1 dim numpy array
+        point = np.array(point).reshape(-1)
+
         widths = [np.abs(mm[1] - mm[0]) for mm in self.domain.params.min_max]
         widths = [(w / 2) * self.params.jitter_val for w in widths]
 
