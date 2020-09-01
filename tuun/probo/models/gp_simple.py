@@ -208,8 +208,8 @@ class SimpleGp:
         else:
             ppred_list = list(
                 np.random.normal(
-                    postmu.reshape(-1,),
-                    postcov.reshape(-1,),
+                    postmu.reshape(-1),
+                    postcov.reshape(-1),
                     size=(nsamp, len(input_list)),
                 )
             )

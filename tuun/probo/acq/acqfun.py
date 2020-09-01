@@ -72,7 +72,7 @@ class AcqFunction:
         Setup acquisition function. Transform data and then call inf on model.
         Optionally: cache/compute quantities, and instantiate objects used in
         acquisition function (e.g. when doing sequential optimization).
-        
+
         Parameters
         ----------
         data : Namespace

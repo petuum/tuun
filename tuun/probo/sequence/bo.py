@@ -149,7 +149,7 @@ class SimpleBo:
                 self.designer.acqoptimizer,
                 self.data,
                 seed=subseed,
-                verbose=False
+                verbose=False,
             )
         else:
             designer = self.designer
@@ -167,12 +167,12 @@ class SimpleBo:
         """Print information for a given iteration of Bayesian optimization."""
         x_str_max_len = 14
         x_str = str(self.data.x[-1])
-        x_str = x_str[:min(len(x_str), x_str_max_len)]
+        x_str = x_str[: min(len(x_str), x_str_max_len)]
         y = self.data.y[-1]
         bsf = np.min(self.data.y)
-        print('i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(
-            iter_idx, x_str, y, bsf
-        ))
+        print(
+            'i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
+        )
 
     def print_final_info(self):
         """Print final information after Bayesian optimization is complete."""

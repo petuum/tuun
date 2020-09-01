@@ -13,9 +13,7 @@ from ..util.misc_util import dict_to_namespace
 class ProductAcqOptimizer:
     """AcqOptimizer for ProductDomain."""
 
-    def __init__(
-        self, acqoptimizer_list, params=None, print_delta=False, verbose=True,
-    ):
+    def __init__(self, acqoptimizer_list, params=None, print_delta=False, verbose=True):
         """
         Parameters
         ----------

@@ -170,6 +170,11 @@ class SpoAcqOptimizer(AcqOptimizer):
     def post_process_optima(self, optima):
         """Run post processing for found optima."""
         optima = list(optima)
+
+        # If optima is 1 dimensional, cast to float
+        if len(optima) == 1:
+            optima = optima[0]
+
         return optima
 
     def print_acq_delta(self, acqmap, init_point, optima):
@@ -185,6 +190,9 @@ class SpoAcqOptimizer(AcqOptimizer):
 
     def run_spo_minimize(self, real_dom, acqmap, data, init_point):
         """Use scipy.optimize to minimize acqmap over a RealDomain."""
+
+        # Ensure init point is numpy array
+        init_point = np.array(init_point).reshape(-1)
 
         # Set constraints
         constraints = []

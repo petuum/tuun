@@ -66,7 +66,7 @@ class AcqOptimizer:
     def set_domain(self, domain):
         """
         Set self.domain, the search space for acquisition optimization.
-        
+
         Parameters
         ----------
         domain: Domain_or_Namespace_or_dict

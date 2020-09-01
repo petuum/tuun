@@ -131,7 +131,7 @@ def sample_mvn(mu, covmat, nsamp):
     Sample from multivariate normal distribution with mean mu and covariance
     matrix covmat.
     """
-    mu = mu.reshape(-1,)
+    mu = mu.reshape(-1)
     ndim = len(mu)
     lmat = stable_cholesky(covmat)
     umat = np.random.normal(size=(ndim, nsamp))

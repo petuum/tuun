@@ -101,7 +101,7 @@ class AcqOptDesigner:
     def set_acqfunction(self, acqfunction):
         """
         Set self.acqfunction, which represents the acquisition function.
-        
+
         Parameters
         ----------
         acqfunction : AcqFunction_or_Namespace_or_dict
@@ -121,7 +121,7 @@ class AcqOptDesigner:
     def set_acqoptimizer(self, acqoptimizer):
         """
         Set self.acqoptimizer, which optimizes the acquisition function.
-        
+
         Parameters
         ----------
         acqoptimizer : AcqOptimizer_or_Namespace_or_dict

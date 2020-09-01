@@ -9,7 +9,7 @@ import os
 def dict_to_namespace(params):
     """
     If params is a dict, convert it to a Namespace, and return it.
-    
+
     Parameters
     ----------
     params : Namespace_or_dict
