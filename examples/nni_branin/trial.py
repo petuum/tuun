@@ -13,7 +13,7 @@ f = branin
 x = nni.get_next_parameter()
 print('x = {}'.format(x))
 
-xin = x['suggestion']['__ndarray__']
+xin = x['suggestion']
 print('xin = {}'.format(xin))
 
 print('querying function now')

@@ -9,6 +9,8 @@ import numpy as np
 def branin(x):
     """Branin synthetic function wrapper"""
 
+    x = np.array(x)
+
     if not isinstance(x, np.ndarray):
         x = np.array(x)
 
