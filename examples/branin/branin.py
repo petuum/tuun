@@ -11,6 +11,8 @@ from tuun.domain.real import RealDomain
 def branin(x):
     """Branin synthetic function wrapper"""
 
+    x = np.array(x)
+
     if len(x.shape) == 0:
         return branin_single(np.array([x]))
 
