@@ -5,7 +5,7 @@ opt_config = {'name': 'real'}
 dragonfly_config = {'acq_str': 'ucb-ei', 'n_init_rs': 0}
 
 data = {
-    'x': [0.0, 1.0, 2.0],
+    'x': [[0.0], [1.0], [2.0]],
     'y': [6.0, 3.0, 4.0],
 }
 

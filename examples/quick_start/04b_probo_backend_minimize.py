@@ -15,7 +15,7 @@ acqfunction_config = {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500}
 acqoptimizer_config = {'name': 'cobyla', 'rand_every': 4, 'jitter': True}
 domain_config = {'name': 'real', 'min_max': [(-10, 10)]}
 
-f = lambda x: x ** 4 - x ** 2 + 0.1 * x
+f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 
 pb = ProboBackend(model_config, acqfunction_config, acqoptimizer_config, domain_config)
 results = pb.minimize_function(f, 20, seed=11)

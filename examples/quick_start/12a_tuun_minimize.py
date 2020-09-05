@@ -10,5 +10,5 @@ config = {
 }
 tu = Tuun(config)
 
-f = lambda x: x ** 4 - x ** 2 + 0.1 * x
+f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)

@@ -10,7 +10,7 @@ acqfunction = {'acq_str': 'ei'}
 acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 
 # define initial dataset
-data = {'x': [0.0, 1.0, 2.0], 'y': [6.0, 3.0, 4.0]}
+data = {'x': [[0.0], [1.0], [2.0]], 'y': [6.0, 3.0, 4.0]}
 
 # define designer
 designer = AcqOptDesigner(model, acqfunction, acqoptimizer, data)

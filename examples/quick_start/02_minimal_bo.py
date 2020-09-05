@@ -10,7 +10,7 @@ acqfunction = {'acq_str': 'ei'}
 acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5)]})
 
 # define function
-f = lambda x: x ** 4 - x ** 2 + 0.1 * x
+f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 
 # define and run BO
 bo = SimpleBo(f, model, acqfunction, acqoptimizer, params={'n_iter': 20})

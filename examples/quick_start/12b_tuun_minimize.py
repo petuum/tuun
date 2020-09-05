@@ -1,13 +1,19 @@
 from tuun.main import Tuun
 
 config = {
-    'backend': 'dragonfly',
-    'seed': 11,
-    'domain_config': {'name': 'real', 'bounds_list': [(-5, 5)]},
-    'opt_config': {'name': 'real'},
-    'dragonfly_config': {'acq_str': 'ucb-ei'}
+    # configure model
+    'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
+
+    # configure acquisition function
+    'acqfunction_config': {'name': 'default', 'acq_str': 'ei'},
+
+    # configure acquisition optimizer
+    'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
+
+    # configure domain
+    'domain_config': {'name': 'real', 'min_max': [(-5, 5)]},
 }
 tu = Tuun(config)
 
-f = lambda x: x ** 4 - x ** 2 + 0.1 * x
+f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)

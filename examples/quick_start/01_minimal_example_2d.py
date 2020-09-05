@@ -12,13 +12,7 @@ acqoptimizer = AcqOptimizer(domain={'min_max': [(-5, 5), (-5, 5)]})
 
 # define initial dataset
 data = {
-    'x': [
-        np.array([0.0, 0.0]),
-        np.array([0.0, 1.0]),
-        np.array([1.0, 0.0]),
-        np.array([1.0, 1.0]),
-        np.array([0.5, 0.5]),
-    ],
+    'x': [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0], [0.5, 0.5]],
     'y': [6.0, 3.0, 4.0, 5.0, 2.0],
 }
 
