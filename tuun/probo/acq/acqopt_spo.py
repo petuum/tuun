@@ -173,11 +173,9 @@ class SpoAcqOptimizer(AcqOptimizer):
 
     def post_process_optima(self, optima):
         """Run post processing for found optima."""
-        optima = list(optima)
 
-        # If optima is 1 dimensional, cast to float
-        if len(optima) == 1:
-            optima = optima[0]
+        # Cast optima to list
+        optima = list(optima)
 
         return optima
 
