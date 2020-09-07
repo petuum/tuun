@@ -2,6 +2,7 @@
 Main interface for Tuun.
 """
 from argparse import Namespace
+import numpy as np
 
 from .backend import ProboBackend, DragonflyBackend
 
@@ -105,13 +106,26 @@ class Tuun:
         if seed is None:
             seed = self.config.seed
 
+        # Set subseed (depends on data)
+        if seed is None:
+            seed = np.random.randint(13337)
+        subseed = seed if data is None else seed + len(data.x)
+
+        # Call backend suggest_to_minimize method
         suggestion = self.backend.suggest_to_minimize(
-            data=data, verbose=verbose, seed=seed
+            data=data, verbose=verbose, seed=subseed
         )
         return suggestion
 
     def minimize_function(
-        self, f, n_iter=10, data=None, data_update_fun=None, verbose=True, seed=None
+        self,
+        f,
+        n_iter=10,
+        data=None,
+        data_update_fun=None,
+        use_backend_minimize=False,
+        verbose=True,
+        seed=None,
     ):
         """
         Run tuning system to minimize function f.
@@ -126,6 +140,9 @@ class Tuun:
             Dictionary with keys x (list) and y (1D numpy ndarray).
         data_update_fun : function
             Function that will update internal dataset given a tuple (x, y)
+        use_backend_minimize : bool
+            If True, use self.backend.minimize_function method. Otherwise, will proceed
+            via calls to self.suggest_to_minimize().
         verbose : bool
             If True, print information.
         seed : int
@@ -133,6 +150,70 @@ class Tuun:
         """
         if seed is None:
             seed = self.config.seed
+
+        if use_backend_minimize:
+            result = self._run_backend_minimize_function()
+        else:
+            # Minimize function via calls to self.suggest_to_minimize()
+            if data is None:
+                data = Namespace(x=[], y=[])
+
+            n_data_init = 0 if data is None else len(data.x)
+
+            for i in range(n_iter):
+                x = self.suggest_to_minimize(data=data, verbose=False, seed=seed)
+                y = self._format_function_output(f(x))
+
+                # Update data
+                data.x.append(x)
+                data.y.append(y)
+
+                # Print iter info
+                self._print_iter_info(i, data)
+
+            self._print_final_info(data, n_data_init)
+            result = self._get_final_result(data)
+
+        return result
+
+    def _format_function_output(self, y_out):
+        """Format output of function query."""
+
+        # Ensure function output y_out is a float
+        y_out = float(y_out)
+        return y_out
+
+    def _print_iter_info(self, iter_idx, data):
+        """Print information for a given iteration of minimization."""
+        x_str_max_len = 14
+        x_str = str(data.x[-1])
+        x_str = x_str[: min(len(x_str), x_str_max_len)]
+        y = data.y[-1]
+        bsf = np.min(data.y)
+        print(
+            'i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
+        )
+
+    def _print_final_info(self, data, n_data_init):
+        """Print final information after minimization is complete."""
+        min_idx = np.argmin(data.y)
+        min_x = data.x[min_idx]
+        min_y = data.y[min_idx]
+        print('Minimum y = {}'.format(min_y))
+        print('Minimizer x = {}'.format(min_x))
+        print('Found at i = {}'.format(min_idx - n_data_init))
+
+    def _get_final_result(self, data):
+        """Return final result of a run of minimization."""
+        result = Namespace()
+        result.min_idx = np.argmin(data.y)
+        result.min_x = data.x[result.min_idx]
+        result.min_y = data.y[result.min_idx]
+        result.data = data
+        return result
+
+    def _run_backend_minimize_function(f, n_iter, data, data_update_fun, verbose, seed):
+        """Run self.backend.minimize_function method."""
 
         if self.config.backend == 'dragonfly':
             if data is not None:
