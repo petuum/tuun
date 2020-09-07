@@ -106,6 +106,10 @@ class Tuun:
         if seed is None:
             seed = self.config.seed
 
+        # Convert data to Namespace
+        if isinstance(data, dict):
+            data = Namespace(**data)
+
         # Set subseed (depends on data)
         if seed is None:
             seed = np.random.randint(13337)
@@ -150,6 +154,10 @@ class Tuun:
         """
         if seed is None:
             seed = self.config.seed
+
+        # Convert data to Namespace
+        if isinstance(data, dict):
+            data = Namespace(**data)
 
         if use_backend_minimize:
             result = self._run_backend_minimize_function()
