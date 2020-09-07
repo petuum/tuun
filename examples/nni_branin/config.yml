@@ -2,7 +2,7 @@ authorName: default
 experimentName: branin_experiment
 trialConcurrency: 1
 maxExecDuration: 1h
-maxTrialNum: 20
+maxTrialNum: 30
 #choice: local, remote, pai
 trainingServicePlatform: local
 searchSpacePath: search_space.json
@@ -23,6 +23,7 @@ tuner:
   # can be specified in this optional classArgs field, for example
   classArgs:
     tuun_config: {
+        'seed': 11,
         'backend': 'probo',
         #'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
         'model_config': {
@@ -37,9 +38,9 @@ tuner:
             'niter': 70,
         },
         #'model_config': {'name': 'gpytorchgp'},
-        'acqfunction_config': {'name': 'default', 'acq_str': 'ei'},
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
         #'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
-        'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4},
+        'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
         'domain_config': {'name': 'real', 'min_max': [[-5.0, 10.0], [0.0, 15.0]]},
     } 
 trial:
