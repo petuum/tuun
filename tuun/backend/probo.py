@@ -92,9 +92,9 @@ class ProboBackend(Backend):
         seed : int
             If not None, set ProBO random seed to seed.
         """
-        model = self._get_model()
-        acqfunction = self._get_acqfunction()
-        acqoptimizer = self._get_acqoptimizer()
+        model = self._get_model(verbose)
+        acqfunction = self._get_acqfunction(verbose)
+        acqoptimizer = self._get_acqoptimizer(verbose)
 
         designer_params = None
 
@@ -114,7 +114,7 @@ class ProboBackend(Backend):
 
         return suggestion
 
-    def _get_model(self):
+    def _get_model(self, verbose=True):
         """
         Return ProBO model based on self.model_config.
         """
@@ -129,21 +129,21 @@ class ProboBackend(Backend):
         ]
 
         if name == 'simplegp':
-            model = probo.SimpleGp(self.model_config)
+            model = probo.SimpleGp(self.model_config, verbose=verbose)
         elif name == 'stangp':
-            model = probo.StanGp(self.model_config)
+            model = probo.StanGp(self.model_config, verbose=verbose)
         elif name == 'stanproductgp':
-            model = probo.StanProductGp(self.model_config)
+            model = probo.StanProductGp(self.model_config, verbose=verbose)
         elif name == 'gpytorchgp':
-            model = probo.GpytorchGp(self.model_config)
+            model = probo.GpytorchGp(self.model_config, verbose=verbose)
         elif name == 'gpytorchproductgp':
-            model = probo.GpytorchProductGp(self.model_config)
+            model = probo.GpytorchProductGp(self.model_config, verbose=verbose)
         elif name == 'sklearnpenn':
-            model = probo.SklearnPenn(self.model_config)
+            model = probo.SklearnPenn(self.model_config, verbose=verbose)
 
         return model
 
-    def _get_acqfunction(self):
+    def _get_acqfunction(self, verbose=True):
         """
         Return ProBO acqfunction based on self.acqfunction_config.
         """
@@ -151,11 +151,11 @@ class ProboBackend(Backend):
         assert name in ['default']
 
         if name == 'default':
-            acqfunction = probo.AcqFunction(self.acqfunction_config)
+            acqfunction = probo.AcqFunction(self.acqfunction_config, verbose=verbose)
 
         return acqfunction
 
-    def _get_acqoptimizer(self):
+    def _get_acqoptimizer(self, verbose=True):
         """
         Return ProBO acqoptimizer based on self.acqoptimizer_config.
         """
@@ -194,28 +194,34 @@ class ProboBackend(Backend):
                 pao_config_list = [self.acqoptimizer_config] * n_domain
 
             acqoptimizer = self._get_product_acqoptimizer(
-                dom_config_list, pao_config_list, self.acqoptimizer_config
+                dom_config_list, pao_config_list, self.acqoptimizer_config, verbose
             )
 
         # For single (non-product) acqoptimizer
         else:
             acqoptimizer = self._get_single_acqoptimizer(
-                self.acqoptimizer_config, self.domain_config
+                self.acqoptimizer_config, self.domain_config, verbose
             )
 
         return acqoptimizer
 
-    def _get_product_acqoptimizer(self, dom_config_list, pao_config_list, pao_config):
+    def _get_product_acqoptimizer(
+        self, dom_config_list, pao_config_list, pao_config, verbose=True
+    ):
         """Return ProductAcqOptimizer."""
         acqoptimizer_list = []
         for dom_config, ao_config in zip(dom_config_list, pao_config_list):
-            acqoptimizer_single = self._get_single_acqoptimizer(ao_config, dom_config)
+            acqoptimizer_single = self._get_single_acqoptimizer(
+                ao_config, dom_config, verbose
+            )
             acqoptimizer_list.append(acqoptimizer_single)
 
-        acqoptimizer = probo.ProductAcqOptimizer(acqoptimizer_list, pao_config)
+        acqoptimizer = probo.ProductAcqOptimizer(
+            acqoptimizer_list, pao_config, verbose=verbose
+        )
         return acqoptimizer
 
-    def _get_single_acqoptimizer(self, ao_config, dom_config):
+    def _get_single_acqoptimizer(self, ao_config, dom_config, verbose=True):
         """
         Return a single (non-product) ProBO acqoptimize.
 
@@ -229,23 +235,23 @@ class ProboBackend(Backend):
         name = ao_config['name']
         assert name in ['default', 'cobyla', 'neldermead']
 
-        domain = self._get_domain(dom_config)
+        domain = self._get_domain(dom_config, verbose)
 
         if name == 'default':
-            acqoptimizer = probo.AcqOptimizer(ao_config, domain)
+            acqoptimizer = probo.AcqOptimizer(ao_config, domain, verbose=verbose)
         elif name == 'cobyla':
-            acqoptimizer = probo.CobylaAcqOptimizer(ao_config, domain)
+            acqoptimizer = probo.CobylaAcqOptimizer(ao_config, domain, verbose=verbose)
         elif name == 'neldermead':
-            acqoptimizer = probo.NelderMeadAcqOptimizer(ao_config, domain)
+            acqoptimizer = probo.NelderMeadAcqOptimizer(ao_config, domain, verbose=verbose)
 
         return acqoptimizer
 
-    def _get_domain(self, dom_config):
+    def _get_domain(self, dom_config, verbose=True):
         """Return Domain instance."""
         dom_name = dom_config['name']
         assert dom_name in ['real']
 
         if dom_name == 'real':
-            domain = probo.RealDomain(dom_config)
+            domain = probo.RealDomain(dom_config, verbose=verbose)
 
         return domain
