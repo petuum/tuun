@@ -90,7 +90,9 @@ class DragonflyBackend(Backend):
 
         opt = self._get_opt()
         assert opt.options.num_init_evals == 0.0
-        self._tell_opt_data(opt, data)
+
+        if len(data.x) > 0:
+            self._tell_opt_data(opt, data)
         suggestion = opt.ask()
 
         if verbose:
@@ -136,8 +138,8 @@ class DragonflyBackend(Backend):
 
     def _tell_opt_data(self, opt, data):
         """Tell opt all elements in data."""
-        # NOTE: To minimize, must multiply data['y'] by -1
-        tell_list = [(data['x'][i], -1 * data['y'][i]) for i in range(len(data['x']))]
+        # NOTE: To minimize, must multiply data.y by -1
+        tell_list = [(data.x[i], -1 * data.y[i]) for i in range(len(data.x))]
         opt.tell(tell_list)
 
     def _get_domain(self):
