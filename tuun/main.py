@@ -29,6 +29,7 @@ class Tuun:
 
         # Tuun parameters
         self.config.seed = getattr(config, 'seed', None)
+        self.config.print_x_str_len = getattr(config, 'print_x_str_len', 30)
 
         self.config.backend = getattr(config, 'backend', 'probo')
         assert self.config.backend in ['probo', 'dragonfly']
@@ -192,15 +193,20 @@ class Tuun:
         return y_out
 
     def _print_iter_info(self, iter_idx, data):
-        """Print information for a given iteration of minimization."""
-        x_str_max_len = 14
-        x_str = str(data.x[-1])
-        x_str = x_str[: min(len(x_str), x_str_max_len)]
+        """Print information for a given iteration of Bayesian optimization."""
+        x_last = data.x[-1]
+        x_str = self._get_print_x_str(x_last)
         y = data.y[-1]
         bsf = np.min(data.y)
         print(
-            'i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
+            'i: {},    x: {} \ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
         )
+
+    def _get_print_x_str(self, x):
+        """Return formatted string for x to print at each iter."""
+        x_str = str(x).ljust(self.config.print_x_str_len)
+        x_str = x_str[: self.config.print_x_str_len] + '..'
+        return x_str
 
     def _print_final_info(self, data, n_data_init):
         """Print final information after minimization is complete."""
