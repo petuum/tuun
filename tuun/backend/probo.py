@@ -121,6 +121,7 @@ class ProboBackend(Backend):
         name = self.model_config['name']
         assert name in [
             'simplegp',
+            'simpleproductkernelgp',
             'stangp',
             'stanproductgp',
             'gpytorchgp',
@@ -130,6 +131,8 @@ class ProboBackend(Backend):
 
         if name == 'simplegp':
             model = probo.SimpleGp(self.model_config, verbose=verbose)
+        elif name == 'simpleproductkernelgp':
+            model = probo.SimpleProductKernelGp(self.model_config, verbose=verbose)
         elif name == 'stangp':
             model = probo.StanGp(self.model_config, verbose=verbose)
         elif name == 'stanproductgp':
@@ -251,9 +254,11 @@ class ProboBackend(Backend):
     def _get_domain(self, dom_config, verbose=True):
         """Return Domain instance."""
         dom_name = dom_config['name']
-        assert dom_name in ['real']
+        assert dom_name in ['real', 'list']
 
         if dom_name == 'real':
             domain = probo.RealDomain(dom_config, verbose=verbose)
+        elif dom_name == 'list':
+            domain = probo.ListDomain(dom_config, verbose=verbose)
 
         return domain
