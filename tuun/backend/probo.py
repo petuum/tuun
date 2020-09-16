@@ -242,7 +242,9 @@ class ProboBackend(Backend):
         elif name == 'cobyla':
             acqoptimizer = probo.CobylaAcqOptimizer(ao_config, domain, verbose=verbose)
         elif name == 'neldermead':
-            acqoptimizer = probo.NelderMeadAcqOptimizer(ao_config, domain, verbose=verbose)
+            acqoptimizer = probo.NelderMeadAcqOptimizer(
+                ao_config, domain, verbose=verbose
+            )
 
         return acqoptimizer
 
