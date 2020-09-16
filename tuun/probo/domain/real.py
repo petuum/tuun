@@ -8,10 +8,8 @@ import numpy as np
 from ..util.misc_util import dict_to_namespace
 
 
-class RealDomain(object):
-    """
-    Class for defining sets in real-coordinate (Euclidean) space.
-    """
+class RealDomain:
+    """Class for defining bounded sets in real (Euclidean) space."""
 
     def __init__(self, params=None, verbose=True):
         """
@@ -22,10 +20,10 @@ class RealDomain(object):
         verbose : bool
             If True, print description string.
         """
-        self.set_params(params)
-        self.set_verbose(verbose)
+        self._set_params(params)
+        self._set_verbose(verbose)
 
-    def set_params(self, params):
+    def _set_params(self, params):
         """Set parameters for the RealDomain."""
         params = dict_to_namespace(params)
 
@@ -35,11 +33,11 @@ class RealDomain(object):
 
         self.ndimx = len(self.params.min_max)
 
-    def set_verbose(self, verbose):
+    def _set_verbose(self, verbose):
         """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
-            self.print_str()
+            self._print_str()
 
     def is_in_domain(self, pt):
         """Check if pt is in domain, and return True or False."""
@@ -64,6 +62,6 @@ class RealDomain(object):
 
         return list_of_list_per_sample
 
-    def print_str(self):
+    def _print_str(self):
         """Print a description string."""
         print('*RealDomain with params = {}'.format(self.params))

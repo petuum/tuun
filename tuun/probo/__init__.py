@@ -11,8 +11,8 @@ from .acq import (
     ProductAcqOptimizer,
 )
 from .sequence import SimpleBo
-from .domain import RealDomain, ListDomain, ProductDomain
-from .models import SimpleGp
+from .domain import RealDomain, ListDomain, IntegralDomain, ProductDomain
+from .models import SimpleGp, SimpleProductKernelGp
 from .design import AcqOptDesigner
 
 # Stan models
@@ -42,6 +42,7 @@ __all__ = [
     'CobylaAcqOptimizer',
     'NelderMeadAcqOptimizer',
     'SpoAcqOptimizer',
+    'IntegralDomain',
     'ListDomain',
     'RealDomain',
     'ProductDomain',

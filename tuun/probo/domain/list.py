@@ -8,10 +8,8 @@ import numpy as np
 from ..util.misc_util import dict_to_namespace
 
 
-class ListDomain(object):
-    """
-    Class for defining sets defined by a list of elements.
-    """
+class ListDomain:
+    """Class for defining discrete sets containing a list of elements."""
 
     def __init__(self, params=None, verbose=True):
         """
@@ -22,11 +20,11 @@ class ListDomain(object):
         verbose : bool
             If True, print description string.
         """
-        self.set_params(params)
-        self.init_domain_list()
-        self.set_verbose(verbose)
+        self._set_params(params)
+        self._init_domain_list()
+        self._set_verbose(verbose)
 
-    def set_params(self, params):
+    def _set_params(self, params):
         """Set parameters for the ListDomain."""
         params = dict_to_namespace(params)
 
@@ -35,24 +33,21 @@ class ListDomain(object):
             params, 'set_domain_list_auto', False
         )
         self.params.domain_list_exec_str = getattr(params, 'domain_list_exec_str', '')
-        self.params.set_domain_list = getattr(params, 'set_domain_list', False)
         self.params.domain_list = getattr(params, 'domain_list', [])
         self.params.dom_str = getattr(params, 'dom_str', 'list')
 
-    def set_verbose(self, verbose):
+    def _set_verbose(self, verbose):
         """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
-            self.print_str()
+            self._print_str()
 
-    def init_domain_list(self):
+    def _init_domain_list(self):
         """Initialize self.domain_list."""
-        if getattr(self.params, 'set_domain_list_auto', False):
+        if self.params.set_domain_list_auto:
             self.set_domain_list_auto()
-        elif getattr(self.params, 'set_domain_list', False):
-            self.set_domain_list(self.params.domain_list)
         else:
-            self.domain_list = None
+            self.set_domain_list(self.params.domain_list)
 
     def set_domain_list_auto(self):
         """
@@ -79,6 +74,6 @@ class ListDomain(object):
             randind = np.arange(min(n, len(self.domain_list)))
         return [self.domain_list[i] for i in randind]
 
-    def print_str(self):
+    def _print_str(self):
         """Print a description string."""
         print('*ListDomain with params = {}'.format(self.params))

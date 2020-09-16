@@ -5,6 +5,7 @@ Utilities for Gaussian process (GP) inference.
 import numpy as np
 from scipy.linalg import solve_triangular
 from scipy.spatial.distance import cdist
+import itertools
 
 
 def kern_exp_quad(xmat1, xmat2, ls, alpha):
@@ -40,6 +41,33 @@ def kern_distmat(xmat1, xmat2, ls, alpha, distfn):
     distmat = distfn(xmat1, xmat2)
     sq_norm = -distmat / ls ** 2
     return alpha ** 2 * np.exp(sq_norm)
+
+
+def kern_simple_list(xlist1, xlist2, ls, alpha):
+    """
+    Kernel for two lists containing elements that can be compared for equality.
+    K(a,b) = 1 if a and b are equal and K(a,b) = 0 otherwise.
+    """
+    prod_list = itertools.product(xlist1, xlist2)
+    len1 = len(xlist1)
+    len2 = len(xlist2)
+    kernmat = (
+        np.array([x[0] == x[1] for x in prod_list]).astype(int).reshape(len1, len2)
+    )
+    return kernmat
+
+
+def get_product_kernel(kernel_list):
+    """Given a list of kernel functions, return product kernel."""
+
+    def product_kernel(x1, x2, ls, alpha):
+        """Kernel returning elementwise-product of kernel matrices from kernel_list."""
+        mat_prod = kernel_list[0](x1, x2, ls, alpha)
+        for kernel in kernel_list[1:]:
+            mat_prod = mat_prod * kernel(x1, x2, ls, alpha)
+        return mat_prod
+
+    return product_kernel
 
 
 def get_cholesky_decomp(k11_nonoise, sigma, psd_str):

@@ -7,10 +7,8 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 
-class DataTransformer(object):
-    """
-    Class for transforming data.
-    """
+class DataTransformer:
+    """Class for transforming data."""
 
     def __init__(self, data, verbose=True):
         """
@@ -21,28 +19,32 @@ class DataTransformer(object):
         verbose : bool
             If True, print description string.
         """
-        self.set_y_data(data)
-        self.set_y_transformers()
-        self.set_verbose(verbose)
+        self._set_y_data(data)
+        self._set_y_transformers()
+        self._set_verbose(verbose)
 
-    def set_y_data(self, data):
+    def _set_y_data(self, data):
         """Set self.y_data."""
+
+        # Ensure data.y is a numpy array
+        data.y = np.array(data.y)
+
         if len(data.y.shape) > 1:
             if not (data.y.shape[0] == 1 or data.y.shape[1] == 1):
                 raise ValueError('data.y has incorrect shape.')
         self.y_data_orig_shape = data.y.shape
         self.y_data = data.y.reshape(-1, 1)
 
-    def set_y_transformers(self):
+    def _set_y_transformers(self):
         """Set transformers for self.y_data."""
         self.ss = StandardScaler()
         self.ss.fit(self.y_data)
 
-    def set_verbose(self, verbose):
+    def _set_verbose(self, verbose):
         """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
-            self.print_str()
+            self._print_str()
 
     def transform_y_data(self, y_data=None):
         """Return transformed y_data (default self.y_data)."""
@@ -74,6 +76,6 @@ class DataTransformer(object):
         y_inv_trans = y_inv_trans_col.reshape(y_data_orig_shape)
         return y_inv_trans
 
-    def print_str(self):
+    def _print_str(self):
         """Print a description string."""
         print('*DataTransformer')

@@ -8,9 +8,7 @@ from scipy.stats import norm, mstats
 
 
 class Acquisitioner:
-    """
-    Class to manage acquisition function definitions and approximations.
-    """
+    """Class to manage acquisition function definitions and approximations."""
 
     def __init__(self, data, params=None, verbose=True):
         """
@@ -24,91 +22,94 @@ class Acquisitioner:
             If True, print description string.
         """
         self.data = data
-        self.set_params(params)
-        self.set_acqfn()
-        self.set_verbose(verbose)
+        self._set_params(params)
+        self._set_acqfn()
+        self._set_verbose(verbose)
 
-    def set_params(self, params):
+    def _set_params(self, params):
         """Set parameters for the Acquisitioner."""
         self.params = Namespace()
         self.params.acq_str = getattr(params, 'acq_str', 'ei')
-        self.params.pmout_str = getattr(params, 'pmout_str', 'sample')
+        self.params.ypred_str = getattr(params, 'ypred_str', 'sample')
 
-    def set_acqfn(self):
+    def _set_acqfn(self):
         """Set the acquisition method."""
         if self.params.acq_str == 'ei':
-            self.acqfn = self.ei
-        if self.params.acq_str == 'pi':
-            self.acqfn = self.pi
-        if self.params.acq_str == 'ts':
-            self.acqfn = self.ts
-        if self.params.acq_str == 'ucb':
-            self.acqfn = self.ucb
-        if self.params.acq_str == 'mean':
-            self.acqfn = self.mean
-        if self.params.acq_str == 'rand':
-            self.acqfn = self.rand
-        if self.params.acq_str == 'null':
-            self.acqfn = self.null
+            self.acqfn = self._ei
+        elif self.params.acq_str == 'pi':
+            self.acqfn = self._pi
+        elif self.params.acq_str == 'ucb':
+            self.acqfn = self._ucb
+        elif self.params.acq_str == 'ts':
+            self.acqfn = self._ts
+        elif self.params.acq_str == 'mean':
+            self.acqfn = self._mean
+        elif self.params.acq_str == 'rand':
+            self.acqfn = self._rand
+        elif self.params.acq_str == 'null':
+            self.acqfn = self._null
+        else:
+            raise ValueError(
+                'Incorrect self.params.acq_str: {}'.format(self.params.acq_str)
+            )
 
-    def set_verbose(self, verbose):
+    def _set_verbose(self, verbose):
         """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
-            self.print_str()
+            self._print_str()
 
-    def ei(self, pmout):
+    def _ei(self, ypred):
         """Expected improvement (EI)."""
-        if self.params.pmout_str == 'sample':
-            return self.ppl_acq_ei(pmout)
+        if self.params.ypred_str == 'sample':
+            return self._ppl_ei(ypred)
 
-    def pi(self, pmout):
+    def _pi(self, ypred):
         """Probability of improvement (PI)."""
-        if self.params.pmout_str == 'sample':
-            return self.ppl_acq_pi(pmout)
+        if self.params.ypred_str == 'sample':
+            return self._ppl_pi(ypred)
 
-    def ucb(self, pmout):
+    def _ucb(self, ypred, beta=0.5):
         """Upper (lower) confidence bound (UCB)."""
-        if self.params.pmout_str == 'sample':
-            return self.ppl_acq_ucb(pmout)
+        if self.params.ypred_str == 'sample':
+            return self._ppl_ucb(ypred, beta)
 
-    def ts(self, pmout):
+    def _ts(self, ypred):
         """Thompson sampling (TS)."""
-        if self.params.pmout_str == 'sample':
-            return self.ppl_acq_ts(pmout)
+        if self.params.ypred_str == 'sample':
+            return self._ppl_ts(ypred)
 
-    def mean(self, pmout):
+    def _mean(self, ypred):
         """Mean of posterior predictive."""
-        if self.params.pmout_str == 'sample':
-            return self.ppl_acq_mean(pmout)
+        if self.params.ypred_str == 'sample':
+            return self._ppl_mean(ypred)
 
-    def rand(self, pmout):
+    def _rand(self, ypred):
         """Uniform random sampling."""
         return np.random.random()
 
-    def null(self, pmout):
+    def _null(self, ypred):
         """Return constant 0."""
         return 0.0
 
     # PPL Acquisition Functions
-    def ppl_acq_ei(self, pmout_samp, normal=True):
+    def _ppl_ei(self, ypred_samp, normal=True):
         """
-        PPL-EI: PPL acquisition function algorithm for expected improvement
-        (EI).
+        PPL-EI: PPL acquisition function algorithm for expected improvement (EI).
 
         Parameters
         ----------
-        pmout_samp : ndarray
+        ypred_samp : ndarray
             A numpy ndarray with shape=(nsamp,).
         normal : bool
-            If true, assume pmout_samp are Gaussian distributed.
+            If true, assume ypred_samp are Gaussian distributed.
 
         Returns
         -------
         float
             PPL-EI acquisition function value.
         """
-        youts = np.array(pmout_samp).flatten()
+        youts = np.array(ypred_samp).flatten()
         nsamp = youts.shape[0]
         y_min = self.data.y.min()
         if normal:
@@ -128,24 +129,23 @@ class Acquisitioner:
             )
         return eiVal
 
-    def ppl_acq_pi(self, pmout_samp, normal=True):
+    def _ppl_pi(self, ypred_samp, normal=True):
         """
-        PPL-PI: PPL acquisition function algorithm for probability of
-        improvement (PI).
+        PPL-PI: PPL acquisition function algorithm for probability of improvement (PI).
 
         Parameters
         ----------
-        pmout_samp : ndarray
+        ypred_samp : ndarray
             A numpy ndarray with shape=(nsamp,).
         normal : bool
-            If true, assume pmout_samp are Gaussian distributed.
+            If true, assume ypred_samp are Gaussian distributed.
 
         Returns
         -------
         float
             PPL-PI acquisition function value.
         """
-        youts = np.array(pmout_samp).flatten()
+        youts = np.array(ypred_samp).flatten()
         nsamp = youts.shape[0]
         y_min = self.data.y.min()
         if normal:
@@ -158,18 +158,18 @@ class Acquisitioner:
             piVal = -1 * len(np.argwhere(youts < y_min)) / float(nsamp)
         return piVal
 
-    def ppl_acq_ucb(self, pmout_samp, normal=True, beta=0.5):
+    def _ppl_ucb(self, ypred_samp, normal=True, beta=0.5):
         """
-        PPL-UCB: PPL acquisition function algorithm for upper confidence bound
-        (UCB). Note that this algorithm computes a lower confidence bound due
-        to assumed minimization.
+        PPL-UCB: PPL acquisition function algorithm for upper confidence bound (UCB).
+        Note that this algorithm computes a lower confidence bound due to assumed
+        minimization.
 
         Parameters
         ----------
-        pmout_samp : ndarray
+        ypred_samp : ndarray
             A numpy ndarray with shape=(nsamp,).
         normal : bool
-            If true, assume pmout_samp are Gaussian distributed.
+            If true, assume ypred_samp are Gaussian distributed.
         beta : float
             UCB tradeoff parameter.
 
@@ -178,7 +178,7 @@ class Acquisitioner:
         float
             PPL-UCB acquisition function value.
         """
-        youts = np.array(pmout_samp).flatten()
+        youts = np.array(ypred_samp).flatten()
         if normal:
             ucb_val = np.mean(youts) - beta * np.std(youts)
         else:
@@ -189,13 +189,13 @@ class Acquisitioner:
             ucb_val = quantiles[0]
         return ucb_val
 
-    def ppl_acq_ts(self, pmout_samp):
+    def _ppl_ts(self, ypred_samp):
         """
         PPL-TS: PPL acquisition function algorithm for Thompson sampling (TS).
 
         Parameters
         ----------
-        pmout_samp : ndarray
+        ypred_samp : ndarray
             A numpy ndarray with shape=(nsamp,).
 
         Returns
@@ -203,27 +203,27 @@ class Acquisitioner:
         float
             PPL-TS acquisition function value.
         """
-        return pmout_samp.mean()
+        return ypred_samp.mean()
 
-    def ppl_acq_mean(self, pmout_samp):
+    def _ppl_mean(self, ypred_samp):
         """
-        PPL-Mean: PPL acquisition function algorithm for the mean of the posterior
+        PPL-mean: PPL acquisition function algorithm for the mean of the posterior
         predictive.
 
         Parameters
         ----------
-        pmout_samp : ndarray
+        ypred_samp : ndarray
             A numpy ndarray with shape=(nsamp,).
 
         Returns
         -------
         float
-            PPL-Mean acquisition function value.
+            PPL-mean acquisition function value.
         """
-        youts = np.array(pmout_samp).flatten()
+        youts = np.array(ypred_samp).flatten()
         return np.mean(youts)
 
     # Utilities
-    def print_str(self):
+    def _print_str(self):
         """Print a description string."""
         print('*Acquisitioner with params={}'.format(self.params))

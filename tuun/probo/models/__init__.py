@@ -3,6 +3,7 @@ Models for use in ProBO.
 """
 
 from .gp_simple import SimpleGp
+from .gp_simple_productkernel import SimpleProductKernelGp
 
 # from .gp_distmat import SimpleDistmatGp
 

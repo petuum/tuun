@@ -9,9 +9,7 @@ from ..util.misc_util import dict_to_namespace
 
 
 class IntegralDomain:
-    """
-    Class for defining sets of integers.
-    """
+    """Class for defining bounded sets of integers."""
 
     def __init__(self, params=None, verbose=True):
         """
@@ -22,10 +20,10 @@ class IntegralDomain:
         verbose : bool
             If True, print description string.
         """
-        self.set_params(params)
-        self.set_verbose(verbose)
+        self._set_params(params)
+        self._set_verbose(verbose)
 
-    def set_params(self, params):
+    def _set_params(self, params):
         """Set parameters for the IntegralDomain."""
         params = dict_to_namespace(params)
 
@@ -35,15 +33,14 @@ class IntegralDomain:
 
         self.ndimx = len(self.params.min_max)
 
-    def set_verbose(self, verbose):
+    def _set_verbose(self, verbose):
         """Set verbose options."""
         self.verbose = verbose
         if self.verbose:
-            self.print_str()
+            self._print_str()
 
     def is_in_domain(self, pt):
         """Check if pt is in domain, and return True or False."""
-
         pt = np.array(pt).reshape(-1)
 
         if pt.shape[0] != self.ndimx:
@@ -69,6 +66,6 @@ class IntegralDomain:
 
         return list_of_list_per_sample
 
-    def print_str(self):
+    def _print_str(self):
         """Print a description string."""
         print('*IntegralDomain with params = {}'.format(self.params))

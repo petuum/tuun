@@ -77,6 +77,7 @@ class SimpleBo:
         self.params = Namespace()
         self.params.n_iter = getattr(params, 'n_iter', 10)
         self.params.reinit_designer = getattr(params, 'reinit_designer', False)
+        self.params.print_x_str_len = getattr(params, 'print_x_str_len', 30) # 14
         self.params.seed = self.seed
 
     def set_designer(self, model, acqfunction, acqoptimizer, data):
@@ -165,14 +166,18 @@ class SimpleBo:
 
     def print_iter_info(self, iter_idx):
         """Print information for a given iteration of Bayesian optimization."""
-        x_str_max_len = 14
-        x_str = str(self.data.x[-1])
-        x_str = x_str[: min(len(x_str), x_str_max_len)]
+        x_str = self.get_print_x_str()
         y = self.data.y[-1]
         bsf = np.min(self.data.y)
         print(
-            'i: {},    x: {},\ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
+            'i: {},    x: {} \ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
         )
+
+    def get_print_x_str(self):
+        """Return formatted x string to print at each iter."""
+        x_str = str(self.data.x[-1]).ljust(self.params.print_x_str_len)
+        x_str = x_str[: self.params.print_x_str_len] + '..'
+        return x_str
 
     def print_final_info(self):
         """Print final information after Bayesian optimization is complete."""
