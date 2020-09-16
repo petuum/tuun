@@ -13,9 +13,8 @@ print('x = {}'.format(x))
 xin = x['suggestion']
 print('xin = {}'.format(xin))
 
-print('querying function now')
+print('Querying function now')
 y = f(xin)
 print('y = {}'.format(y))
-print('-----')
 
 nni.report_final_result(y)
