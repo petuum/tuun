@@ -1,0 +1,55 @@
+authorName: default
+experimentName: bert_proxy_experiment
+trialConcurrency: 1
+maxExecDuration: 1h
+maxTrialNum: 50
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space.json
+#choice: true, false
+useAnnotation: false
+#tuner:
+  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  ##SMAC (SMAC should be installed through nnictl)
+  #builtinTunerName: TPE
+  #classArgs:
+    ##choice: maximize, minimize
+    #optimize_mode: maximize
+tuner:
+  codeDir: /home/ubuntu/proj/tuun-dev/tuun
+  classFileName: nni_tuner.py
+  className: TuunTuner
+  # Any parameter need to pass to your tuner class __init__ constructor
+  # can be specified in this optional classArgs field, for example
+  classArgs:
+    tuun_config: {
+        'seed': 11,
+        'model_config': {
+            'name': 'simpleproductkernelgp',
+            'ls': 3.0,
+            'alpha': 1.5,
+            'sigma': 1e-5,
+            'domain_spec': ['list', 'real'],
+        },
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
+        'acqoptimizer_config': {
+            'name': 'product',
+            'n_iter_bcd': 3,
+            'n_init_rs': 3,
+            'pao_config_list': [
+                {'name': 'default'},
+                {'name': 'cobyla', 'init_str': 'init_opt'},
+            ],
+        },
+        'domain_config': {
+            'name': 'product',
+            'dom_config_list': [
+                {'name': 'list', 'domain_list': ['a', 'b', 'c', 'd', 'e']},
+                {'name': 'real', 'min_max': [[-10, 10]]},
+            ],
+        },
+    } 
+trial:
+  command: python trial.py
+  codeDir: .
+  gpuNum: 0

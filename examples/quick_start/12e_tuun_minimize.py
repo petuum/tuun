@@ -24,7 +24,7 @@ config = {
         'name': 'product',
         'dom_config_list': [
             {'name': 'list', 'domain_list': ['a', 'b', 'c', 'd', 'e']},
-            {'name': 'real', 'min_max': [(-10, 10)]},
+            {'name': 'real', 'min_max': [[-10, 10]]},
         ],
     },
 }
