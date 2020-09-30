@@ -182,10 +182,11 @@ class StanGp:
             try:
                 stanout = run_stan_optimizing('LBFGS')
             except RuntimeError:
-                print(
-                    '\t*Stan LBFGS optimizer failed. Running Newton '
-                    + 'optimizer instead.'
-                )
+                if self.verbose:
+                    print(
+                        '\t*Stan LBFGS optimizer failed. Running Newton '
+                        + 'optimizer instead.'
+                    )
                 stanout = run_stan_optimizing('Newton')
 
         elif self.params.model_str == 'samp' or self.params.model_str == 'sampfixedsig':
