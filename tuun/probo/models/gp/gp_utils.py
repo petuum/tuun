@@ -21,7 +21,8 @@ def kern_exp_quad_noscale(xmat1, xmat2, ls):
     Exponentiated quadratic kernel function (aka squared exponential kernel aka
     RBF kernel), without scale parameter.
     """
-    sq_norm = (-1 / (2 * ls ** 2)) * cdist(xmat1, xmat2, 'sqeuclidean')
+    distmat = squared_euc_distmat(xmat1, xmat2)
+    sq_norm = (-1 / (2 * ls ** 2)) * distmat
     return np.exp(sq_norm)
 
 
@@ -39,22 +40,39 @@ def kern_distmat(xmat1, xmat2, ls, alpha, distfn):
     of xmat1 and xmat2 only).
     """
     distmat = distfn(xmat1, xmat2)
-    sq_norm = -distmat / ls ** 2
-    return alpha ** 2 * np.exp(sq_norm)
+    kernmat = alpha ** 2 * np.exp(-distmat / ls ** 2)
+    return kernmat
 
 
-def kern_simple_list(xlist1, xlist2, ls, alpha):
+def kern_simple_list(xlist1, xlist2, ls, alpha, base_dist=0.0):
     """
     Kernel for two lists containing elements that can be compared for equality.
-    K(a,b) = 1 if a and b are equal and K(a,b) = 0 otherwise.
+    K(a,b) = 1 + base_dist if a and b are equal and K(a,b) = base_dist otherwise.
     """
-    prod_list = itertools.product(xlist1, xlist2)
+    distmat = simple_list_distmat(xlist1, xlist2)
+    distmat = distmat + base_dist
+    kernmat = alpha ** 2 * np.exp(-distmat / ls ** 2)
+    return kernmat
+
+
+def simple_list_distmat(xlist1, xlist2, weight=10.0):
+    """
+    Return distance matrix containing zeros when xlist1[i] == xlist2[j] and 0 otherwise.
+    """
+    prod_list = list(itertools.product(xlist1, xlist2))
     len1 = len(xlist1)
     len2 = len(xlist2)
-    kernmat = (
-        np.array([x[0] == x[1] for x in prod_list]).astype(int).reshape(len1, len2)
-    )
-    return kernmat
+    try:
+        distmat = weight * np.array([x[0] != x[1] for x in prod_list]).astype(
+            int
+        ).reshape(len1, len2)
+    except:
+        # For cases where comparison returns iterable of bools
+        distmat = weight * np.array([all(x[0] != x[1]) for x in prod_list]).astype(
+            int
+        ).reshape(len1, len2)
+
+    return distmat
 
 
 def get_product_kernel(kernel_list):
@@ -62,9 +80,10 @@ def get_product_kernel(kernel_list):
 
     def product_kernel(x1, x2, ls, alpha):
         """Kernel returning elementwise-product of kernel matrices from kernel_list."""
-        mat_prod = kernel_list[0](x1, x2, ls, alpha)
+        mat_prod = kernel_list[0](x1, x2, ls, 1.0)
         for kernel in kernel_list[1:]:
-            mat_prod = mat_prod * kernel(x1, x2, ls, alpha)
+            mat_prod = mat_prod * kernel(x1, x2, ls, 1.0)
+        mat_prod = alpha ** 2 * mat_prod
         return mat_prod
 
     return product_kernel

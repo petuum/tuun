@@ -11,7 +11,7 @@ import pystan
 def get_model(recompile=False, print_status=True):
     """Return stan model. Recompile model if recompile is True."""
 
-    model_file_str = 'tuun/probo/models/stan/model_pkls/gp.pkl'
+    model_file_str = 'tuun/probo/models/stan/model_pkls/gp_distmat.pkl'
 
     if recompile:
         starttime = time.time()
@@ -34,9 +34,8 @@ def get_model_code():
 
     return """
     data {
-        int<lower=1> D;
         int<lower=1> N;
-        vector[D] x[N];
+        matrix[N, N] distmat;
         vector[N] y;
         real<lower=0> ig1;
         real<lower=0> ig2;
@@ -53,7 +52,7 @@ def get_model_code():
     }
 
     model {
-        matrix[N, N] cov = cov_exp_quad(x, alpha, rho)
+        matrix[N, N] cov = square(alpha) * exp(-distmat / square(rho))
                            + diag_matrix(rep_vector(square(sigma), N));
         matrix[N, N] L_cov = cholesky_decompose(cov);
         rho ~ inv_gamma(ig1, ig2);

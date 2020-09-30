@@ -17,8 +17,7 @@ from .design import AcqOptDesigner
 
 # Stan models
 try:
-    from .models import StanGp
-    from .models import StanProductGp
+    from .models import StanGp, StanProductGp, StanDistmatGp
 except:
     pass
 

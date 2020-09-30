@@ -1,7 +1,6 @@
 """
-Functions to define and compile PPs in Stan, for model:
-hierarchical GP (prior on rho, alpha) using a squared exponential
-kernel and fixed sigma.
+Functions to define and compile the Stan model: hierarchical GP (prior on rho, alpha),
+using a squared exponential kernel, and fixed sigma.
 """
 
 import time

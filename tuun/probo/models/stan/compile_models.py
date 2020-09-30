@@ -6,9 +6,9 @@ import argparse
 
 import probo.models.stan.gp as gp
 import probo.models.stan.gp_fixedsig as gp_fixedsig
+import probo.models.stan.gp_distmat_fixedsig as gp_distmat_fixedsig
 
 # import probo.models.stan.gp_distmat as gp_distmat
-# import probo.models.stan.gp_distmat_fixedsig as gp_distmat_fixedsig
 
 
 def main(model_str):

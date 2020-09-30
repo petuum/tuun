@@ -1,6 +1,6 @@
 """
-Functions to define and compile the Stan model: hierarchical GP (prior on rho, alpha,
-sigma), using a squared exponential kernel.
+Functions to define and compile the Stan model: hierarchical GP (prior on rho, alpha),
+using a kernel based on a given distance matrix, and fixed sigma.
 """
 
 import time
@@ -11,7 +11,7 @@ import pystan
 def get_model(recompile=False, print_status=True):
     """Return stan model. Recompile model if recompile is True."""
 
-    model_file_str = 'tuun/probo/models/stan/model_pkls/gp.pkl'
+    model_file_str = 'tuun/probo/models/stan/model_pkls/gp_distmat_fixedsig.pkl'
 
     if recompile:
         starttime = time.time()
@@ -34,31 +34,27 @@ def get_model_code():
 
     return """
     data {
-        int<lower=1> D;
         int<lower=1> N;
-        vector[D] x[N];
+        matrix[N, N] distmat;
         vector[N] y;
         real<lower=0> ig1;
         real<lower=0> ig2;
         real<lower=0> n1;
         real<lower=0> n2;
-        real<lower=0> n3;
-        real<lower=0> n4;
+        real<lower=0> sigma;
     }
 
     parameters {
         real<lower=0> rho;
         real<lower=0> alpha;
-        real<lower=0.0001> sigma;
     }
 
     model {
-        matrix[N, N] cov = cov_exp_quad(x, alpha, rho)
+        matrix[N, N] cov = square(alpha) * exp(-distmat / square(rho))
                            + diag_matrix(rep_vector(square(sigma), N));
         matrix[N, N] L_cov = cholesky_decompose(cov);
         rho ~ inv_gamma(ig1, ig2);
         alpha ~ normal(n1, n2);
-        sigma ~ normal(n3, n4);
         y ~ multi_normal_cholesky(rep_vector(0, N), L_cov);
     }
     """

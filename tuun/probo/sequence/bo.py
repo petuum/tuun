@@ -77,7 +77,7 @@ class SimpleBo:
         self.params = Namespace()
         self.params.n_iter = getattr(params, 'n_iter', 10)
         self.params.reinit_designer = getattr(params, 'reinit_designer', False)
-        self.params.print_x_str_len = getattr(params, 'print_x_str_len', 30) # 14
+        self.params.print_x_str_len = getattr(params, 'print_x_str_len', 30)  # Or: 14
         self.params.seed = self.seed
 
     def set_designer(self, model, acqfunction, acqoptimizer, data):
@@ -117,6 +117,7 @@ class SimpleBo:
 
     def run(self):
         """Run Bayesian optimization."""
+        self.print_starting_info()
 
         # The BO loop
         for i in range(self.params.n_iter):
@@ -164,13 +165,28 @@ class SimpleBo:
         y_out = float(y_out)
         return y_out
 
+    def print_starting_info(self):
+        """Print information before optimiztion run."""
+        print(
+            '[KEY] i: iteration, x: design, y: objective, min_y: minimum '
+            + 'objective so far (* indicates a new min_y)'
+        )
+
     def print_iter_info(self, iter_idx):
         """Print information for a given iteration of Bayesian optimization."""
         x_str = self.get_print_x_str()
         y = self.data.y[-1]
-        bsf = np.min(self.data.y)
+        min_y = np.min(self.data.y)
+
+        if len(self.data.y) > 1:
+            ast_str = '*' if min_y != np.min(self.data.y[:-1]) else ''
+        else:
+            ast_str = '*'
+
         print(
-            'i: {},    x: {} \ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
+            'i: {},    x: {} \ty: {:.4f},\tmin_y: {:.4f} {}'.format(
+                iter_idx, x_str, y, min_y, ast_str
+            )
         )
 
     def get_print_x_str(self):
