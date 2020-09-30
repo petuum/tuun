@@ -314,7 +314,6 @@ class StanGp:
         list
             A list of len=len(input_list) of numpy ndarrays shape=(nsamp, 1).
         """
-        x_pred = np.stack(input_list)
         if lv is None:
             if (
                 self.params.model_str == 'optfixedsig'
@@ -330,7 +329,7 @@ class StanGp:
         postmu, postcov = gp_post(
             self.data.x,
             self.data.y,
-            x_pred,
+            input_list,
             lv.ls,
             lv.alpha,
             lv.sigma,
@@ -378,7 +377,7 @@ class StanGp:
             postmu, postcov = gp_post(
                 self.data.x,
                 self.data.y,
-                np.stack(input_list),
+                input_list,
                 samp.ls,
                 samp.alpha,
                 samp.sigma,
