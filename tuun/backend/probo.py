@@ -124,6 +124,7 @@ class ProboBackend(Backend):
             'simpleproductkernelgp',
             'stangp',
             'stanproductgp',
+            'standistmatgp',
             'gpytorchgp',
             'gpytorchproductgp',
             'sklearnpenn',
@@ -137,6 +138,8 @@ class ProboBackend(Backend):
             model = probo.StanGp(self.model_config, verbose=verbose)
         elif name == 'stanproductgp':
             model = probo.StanProductGp(self.model_config, verbose=verbose)
+        elif name == 'standistmatgp':
+            model = probo.StanDistmatGp(self.model_config, verbose=verbose)
         elif name == 'gpytorchgp':
             model = probo.GpytorchGp(self.model_config, verbose=verbose)
         elif name == 'gpytorchproductgp':
