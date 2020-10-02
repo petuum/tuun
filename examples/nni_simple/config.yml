@@ -16,7 +16,7 @@ useAnnotation: false
     ##choice: maximize, minimize
     #optimize_mode: maximize
 tuner:
-  codeDir: /Users/peng/workspace/tuun-dev/tuun
+  codeDir: /home/ubuntu/proj/tuun-dev/tuun
   classFileName: nni_tuner.py
   className: TuunTuner
   # Any parameter need to pass to your tuner class __init__ constructor
