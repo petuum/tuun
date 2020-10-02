@@ -25,7 +25,15 @@ class TuunTuner(Tuner):
             Dictionary with keys x (list) and y (1D numpy ndarray).
         """
         self._set_tuun(tuun_config)
+        self._set_optimize_mode(tuun_config)
         self._set_data(initial_data)
+
+    def _set_optimize_mode(self, tuun_config):
+        """Configure the mode to choose to minimize or maximize."""
+        assert isinstance(tuun_config, dict)
+        self._optimize_mode = tuun_config.get('optimize_mode', 'min')
+        print('optimize_mode:', self._optimize_mode)
+        assert self._optimize_mode in ['min', 'max']
 
     def _set_tuun(self, tuun_config):
         """Configure and instantiate self.tuun."""
@@ -73,7 +81,10 @@ class TuunTuner(Tuner):
         dict
             A set of (hyper-)parameters suggested by Tuun.
         """
-        suggestion = self.tuun.suggest_to_minimize(self.data)
+        if self._optimize_mode == 'min':
+            suggestion = self.tuun.suggest_to_minimize(self.data)
+        else:  # self._optimize_mode is guaranteed as 'min' or 'max'.
+            suggestion = self.tuun.suggest_to_maximize(self.data)
         parsed_dict = self._parse_suggestion_into_dict(suggestion)
         return parsed_dict
 
