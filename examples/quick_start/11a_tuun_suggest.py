@@ -22,3 +22,12 @@ data = {
     'y': [15.0, 6.0, 9.0, 12.0, 1.0, 1.5],
 }
 suggestion = tu.suggest_to_minimize(data)
+
+# maximization
+
+data['y'] = [-1*v for v in data['y']]
+suggestion_max = tu.suggest_to_maximize(data)
+
+print(type(suggestion))
+# <class 'list'>
+assert suggestion == suggestion_max
