@@ -41,13 +41,9 @@ tuner:
                 {'name': 'cobyla', 'init_str': 'init_opt'},
             ],
         },
-        'domain_config': {
-            'name': 'product',
-            'dom_config_list': [
-                {'name': 'list', 'domain_list': ['a', 'b', 'c', 'd', 'e']},
-                {'name': 'real', 'min_max': [[-10, 10]]},
-            ],
-        },
+        'opt_config': {
+          'name': 'product',
+        },        
     } 
 trial:
   command: python trial.py
