@@ -39,9 +39,11 @@ class Tuun:
             # domain_config = getattr(config, 'domain_config', None)
             # assert domain_config is not None
             # self.config.domain_config = domain_config
-            opt_config = getattr(config, 'opt_config', None)
-            assert opt_config is not None
-            self.config.domain_config = {'name': opt_config['name']}
+            # opt_config = getattr(config, 'opt_config', None)
+            # if opt_config is not None
+            #     self.config.domain_config = {'name': opt_config['name']}
+            # else:
+            #     self.config.domain_config = {}
             model_config = getattr(config, 'model_config', None)
             if model_config is None:
                 model_config = {'name': 'gpytorchgp'}
@@ -65,12 +67,12 @@ class Tuun:
             # domain_config = getattr(config, 'domain_config', None)
             # assert domain_config is not None
             # self.config.domain_config = domain_config
-            opt_config = getattr(config, 'opt_config', None)
-            assert opt_config is not None
-            # if opt_config is None:
-            #     opt_config = {'name': domain_config['name']}
-            self.config.opt_config = opt_config
-            self.config.domain_config = {'name': opt_config['name']}
+            self.config.opt_config = getattr(config, 'opt_config', None)
+            # assert opt_config is not None
+            # # if opt_config is None:
+            # #     opt_config = {'name': domain_config['name']}
+            #self.config.opt_config = opt_config
+            ## self.config.domain_config = {'name': opt_config['name']}
 
             dragonfly_config = getattr(config, 'dragonfly_config', None)
             self.config.dragonfly_config = dragonfly_config

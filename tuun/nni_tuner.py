@@ -37,7 +37,7 @@ def json2space(in_x, name=NodeType.ROOT):
                     else:
                         out_y = {'name': 'list', 'domain_list': _value}
                 elif _type == 'uniform':
-                    out_y = {'name': 'real', 'domain_list': [_value]}
+                    out_y = {'name': 'real', 'min_max': [_value]}
                 #elif _type == 'randint': # to do
                 else:
                     raise RuntimeError(
@@ -113,10 +113,19 @@ class TuunTuner(Tuner):
         search_space : dict
             Information to define a search space.
         """
-        print('==',self.tuun.config.domain_config)
+        #print('==',self.tuun.config.domain_config)
         dom_config_list = json2space(search_space)
         print(dom_config_list)
-        self.tuun.config.domain_config.update({'dom_config_list': dom_config_list})
+        if len(dom_config_list) == 1:
+            self.tuun.config.domain_config = dom_config_list[0]
+        else:
+            #### need a step to merge min_max for multi-dimension
+            self.tuun.config.domain_config = {'name': 'product'}
+            self.tuun.config.domain_config.update({'dom_config_list': dom_config_list})
+        if self.tuun.config.backend == 'dragonfly' and \
+            self.tuun.config.opt_config is None:
+            self.tuun.config.opt_config = {'name': self.tuun.config.domain_config['name']}
+        print(self.tuun.config.domain_config)
         self.tuun._set_backend()
 
     def generate_parameters(self, parameter_id, **kwargs):

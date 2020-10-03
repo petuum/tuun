@@ -41,9 +41,6 @@ tuner:
                 {'name': 'default'},
             ],
         },
-        'opt_config': {
-          'name': 'product',
-        },
     } 
 trial:
   command: python trial.py
