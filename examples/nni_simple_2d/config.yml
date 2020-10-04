@@ -39,7 +39,6 @@ tuner:
         'acqfunction_config': {'name': 'default', 'acq_str': 'ucb'},
         #'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
         'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
-        'domain_config': {'name': 'real', 'min_max': [[-10.0, 10.0], [-4.0, 4.0]]},
     } 
 trial:
   command: python trial.py

@@ -29,7 +29,6 @@ def json2space(in_x, name=NodeType.ROOT):
             if any(isinstance(x, int) for x in _value) and \
                 any(isinstance(x, float) for x in _value):
                 _value = [float(x) for x in _value]
-            print('-----', _value)
             if all(isinstance(x, type(_value[0])) for x in _value):
                 if _type == 'choice':
                     if isinstance(_value[0], (int, float)):
@@ -37,8 +36,8 @@ def json2space(in_x, name=NodeType.ROOT):
                     else:
                         out_y = {'name': 'list', 'domain_list': _value}
                 elif _type == 'uniform':
-                    out_y = {'name': 'real', 'min_max': [_value]}
-                #elif _type == 'randint': # to do
+                    out_y = {'name': 'real', 'min_max': _value}
+                #elif _type == 'randint': # TO DO
                 else:
                     raise RuntimeError(
                         'the search space type is not supported by tuun'
@@ -84,7 +83,6 @@ class TuunTuner(Tuner):
     def _set_tuun(self, tuun_config):
         """Configure and instantiate self.tuun."""
         self.tuun = Tuun(tuun_config)
-        print('set tuun')
 
     def _set_data(self, initial_data):
         """Set self.data."""
@@ -101,7 +99,6 @@ class TuunTuner(Tuner):
                 raise TypeError(
                     'initial_data must be either a dict, Namespace, or None'
                 )
-        print('set data')
 
     def update_search_space(self, search_space):
         """
@@ -113,18 +110,28 @@ class TuunTuner(Tuner):
         search_space : dict
             Information to define a search space.
         """
-        #print('==',self.tuun.config.domain_config)
-        dom_config_list = json2space(search_space)
-        print(dom_config_list)
+        dom_config = json2space(search_space)
+        
+        # merge multiple min_max to a multi-dimension list
+        dom_config_list = []
+        dom_config_real = {'name': 'real', 'min_max': []}
+        for xi in dom_config:
+            if xi['name'] == 'real':
+                dom_config_real['min_max'].append(xi['min_max'])
+            else:
+                dom_config_list.append(xi)
+        if len(dom_config_real['min_max']) > 0:
+            dom_config_list.append(dom_config_real)
+
         if len(dom_config_list) == 1:
             self.tuun.config.domain_config = dom_config_list[0]
         else:
-            #### need a step to merge min_max for multi-dimension
             self.tuun.config.domain_config = {'name': 'product'}
             self.tuun.config.domain_config.update({'dom_config_list': dom_config_list})
         if self.tuun.config.backend == 'dragonfly' and \
             self.tuun.config.opt_config is None:
             self.tuun.config.opt_config = {'name': self.tuun.config.domain_config['name']}
+        
         print(self.tuun.config.domain_config)
         self.tuun._set_backend()
 
