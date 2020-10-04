@@ -18,7 +18,6 @@ class Tuun:
             Config to specify Tuun options.
         """
         self._configure_tuun(config_dict)
-        #self._set_backend()
 
     def _configure_tuun(self, config_dict):
         """Configure Tuun based on config_dict and defaults."""

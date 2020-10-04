@@ -111,8 +111,8 @@ class TuunTuner(Tuner):
             Information to define a search space.
         """
         dom_config = json2space(search_space)
-        
-        # merge multiple min_max to a multi-dimension list
+
+        # Merge multiple min_max to a multi-dimension list
         dom_config_list = []
         dom_config_real = {'name': 'real', 'min_max': []}
         for xi in dom_config:
