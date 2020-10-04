@@ -38,7 +38,8 @@ class Tuun:
         if self.config.backend == 'probo':
 
             domain_config = getattr(config, 'domain_config', None)
-            assert domain_config is not None
+            if domain_config is None:
+                domain_config = {'name': 'real', 'min_max': [(0.0, 10.0)]}
             self.config.domain_config = domain_config
 
             model_config = getattr(config, 'model_config', None)
@@ -63,7 +64,8 @@ class Tuun:
         if self.config.backend == 'dragonfly':
 
             domain_config = getattr(config, 'domain_config', None)
-            assert domain_config is not None
+            if domain_config is None:
+                domain_config = {'name': 'real', 'min_max': [(0.0, 10.0)]}
             self.config.domain_config = domain_config
 
             opt_config = getattr(config, 'opt_config', None)
@@ -90,6 +92,66 @@ class Tuun:
                 opt_config=self.config.opt_config,
                 dragonfly_config=self.config.dragonfly_config,
             )
+
+    def set_search_space_from_list(self, search_space_list):
+        """
+        Set the Tuun search space given a search_space_list, a list of tuples each
+        containing a domain type and a domain bounds specification.  This method will
+        overwrite self.config and self.backend.
+
+        Parameters
+        ----------
+        search_space_list : list
+            List of tuples, where each element tuple corresponds to a separate
+            optimization block which can have a unique domain type. Each element tuple
+            consists of (domain type, domain bounds specification).
+        """
+        domain_types = [ss[0] for ss in search_space_list]
+        assert all([dt in ['real', 'list'] for dt in domain_types])
+
+        # Set backend
+        self.config.backend = 'probo'
+
+        # Set default model_config
+        self.config.model_config = {
+            'name': 'simpleproductkernelgp',
+            'ls': 3.0,
+            'alpha': 1.5,
+            'sigma': 1e-5,
+            'domain_spec': domain_types,
+        }
+
+        # Set default acqoptimizer_config
+        pao_config_list = []
+        for dt in domain_types:
+            if dt == 'list':
+                pao_config_list.append({'name': 'default'})
+            elif dt == 'real':
+                pao_config_list.append({'name': 'cobyla', 'init_str': 'init_opt'})
+
+        self.config.acqoptimizer_config = {
+            'name': 'product',
+            'n_iter_bcd': 3,
+            'n_init_rs': 3,
+            'pao_config_list': pao_config_list,
+        }
+
+        # Set default domain_config
+        dom_config_list = []
+        for i, dt in enumerate(domain_types):
+            bounds_spec = search_space_list[i][1]
+            if dt == 'list':
+                dom_config_list.append({'name': dt, 'domain_list': bounds_spec})
+            elif dt == 'real':
+                dom_config_list.append({'name': dt, 'min_max': bounds_spec})
+
+        self.config.domain_config = {
+            'name': 'product', 'dom_config_list': dom_config_list,
+        }
+
+        # Set self.backend with above settings
+        self._set_backend()
+
 
     def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
