@@ -103,7 +103,7 @@ class TuunTuner(Tuner):
     def update_search_space(self, search_space):
         """
         Update search space. Input search_space contains information that the user
-        pre-defines.
+        pre-defines. The search space is set before generating first hyper-parameters
 
         Parameters
         ----------
