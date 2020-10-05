@@ -93,7 +93,7 @@ class Tuun:
                 dragonfly_config=self.config.dragonfly_config,
             )
 
-    def set_search_space_from_list(self, search_space_list):
+    def set_config_from_list(self, search_space_list):
         """
         Set the Tuun search space given a search_space_list, a list of tuples each
         containing a domain type and a domain bounds specification.  This method will
@@ -132,7 +132,7 @@ class Tuun:
         self.config.acqoptimizer_config = {
             'name': 'product',
             'n_iter_bcd': 3,
-            'n_init_rs': 3,
+            'n_init_rs': 5,
             'pao_config_list': pao_config_list,
         }
 
@@ -152,6 +152,60 @@ class Tuun:
         # Set self.backend with above settings
         self._set_backend()
 
+    def _transform_domain_config(self):
+        """Transform domain."""
+
+        # Normalize domain for probo backend: all 'real' blocks normalized to [0, 10.0].
+        # TODO: also for 'int'
+        if self.config.backend == 'probo':
+            if self.config.domain_config['name'] == 'product':
+                dom_config_list = self.config.domain_config['dom_config_list']
+                for block_idx, domain_config in enumerate(dom_config_list):
+                    if domain_config['name'] == 'real':
+                        min_max = domain_config['min_max']
+                        domain_config['min_max_init'] = min_max
+                        domain_config['min_max'] = [[0, 10] for _ in min_max]
+                self.config.normalize_real = True
+                self._set_backend()
+
+    def _transform_data(self, data, inverse=False):
+        """Return transformed data Namespace."""
+
+        # Transform data for probo backend
+        if self.config.backend == 'probo':
+            if self.config.domain_config['name'] == 'product':
+                data.x = [self._transform_x(xi, inverse=inverse) for xi in data.x]
+        return data
+
+    def _transform_x(self, x, inverse=False):
+        """Return transformed domain point x."""
+
+        # Transform each block of x for probo backend
+        if self.config.backend == 'probo':
+            if self.config.domain_config['name'] == 'product':
+                dom_config_list = self.config.domain_config['dom_config_list']
+                for block_idx, domain_config in enumerate(dom_config_list):
+                    x = self._transform_x_block(x, block_idx, inverse=inverse)
+
+        return x
+
+    def _transform_x_block(self, x, block_idx, inverse=False):
+        """Return domain point x with one block transformed."""
+        domain_config = self.config.domain_config['dom_config_list'][block_idx]
+
+        # Normalize domain: all 'real' blocks normalized to [0, 10.0].
+        # TODO: also for 'int'
+        normalize_real = getattr(self.config, 'normalize_real', False)
+        if domain_config['name'] == 'real' and normalize_real:
+            for i, bounds in enumerate(domain_config['min_max_init']):
+                if inverse is True:
+                    scale_factor = (bounds[1] - bounds[0]) / 10.0
+                    x[block_idx][i] = x[block_idx][i] * scale_factor + bounds[0]
+                else:
+                    scale_factor = 10.0 / (bounds[1] - bounds[0])
+                    x[block_idx][i] = (x[block_idx][i] - bounds[0]) * scale_factor
+
+        return x
 
     def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
@@ -178,10 +232,18 @@ class Tuun:
             seed = np.random.randint(13337)
         subseed = seed if data is None else seed + len(data.x)
 
+        # Transform data
+        data = self._transform_data(data)
+
         # Call backend suggest_to_minimize method
         suggestion = self.backend.suggest_to_minimize(
             data=data, verbose=verbose, seed=subseed
         )
+
+        # Inverse transform data and suggestion
+        data = self._transform_data(data, inverse=True)
+        suggestion = self._transform_x(suggestion, inverse=True)
+
         return suggestion
 
     def minimize_function(
@@ -221,6 +283,9 @@ class Tuun:
         # Convert data to Namespace
         if isinstance(data, dict):
             data = Namespace(**data)
+
+        # Transform domain
+        self._transform_domain_config()
 
         if use_backend_minimize:
             result = self._run_backend_minimize_function()
