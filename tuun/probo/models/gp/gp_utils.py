@@ -22,7 +22,7 @@ def kern_exp_quad_noscale(xmat1, xmat2, ls):
     RBF kernel), without scale parameter.
     """
     distmat = squared_euc_distmat(xmat1, xmat2)
-    sq_norm = (-1 / (2 * ls ** 2)) * distmat
+    sq_norm = -distmat / (2 * ls ** 2)
     return np.exp(sq_norm)
 
 
@@ -40,7 +40,7 @@ def kern_distmat(xmat1, xmat2, ls, alpha, distfn):
     of xmat1 and xmat2 only).
     """
     distmat = distfn(xmat1, xmat2)
-    kernmat = alpha ** 2 * np.exp(-distmat / ls ** 2)
+    kernmat = alpha ** 2 * np.exp(-distmat / (2 * ls ** 2))
     return kernmat
 
 
@@ -51,7 +51,7 @@ def kern_simple_list(xlist1, xlist2, ls, alpha, base_dist=0.0):
     """
     distmat = simple_list_distmat(xlist1, xlist2)
     distmat = distmat + base_dist
-    kernmat = alpha ** 2 * np.exp(-distmat / ls ** 2)
+    kernmat = alpha ** 2 * np.exp(-distmat / (2 * ls ** 2))
     return kernmat
 
 

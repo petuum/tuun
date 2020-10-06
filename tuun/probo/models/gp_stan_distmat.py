@@ -67,7 +67,7 @@ class StanDistmatGp(StanGp):
         assert domain_spec_single in ['real', 'list']
 
         if domain_spec_single is 'real':
-            return lambda a, b: squared_euc_distmat(a, b, 0.5)
+            return lambda a, b: squared_euc_distmat(a, b, 1.0)
         elif domain_spec_single is 'list':
             return simple_list_distmat
 
