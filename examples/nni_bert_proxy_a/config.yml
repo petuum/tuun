@@ -41,13 +41,6 @@ tuner:
                 {'name': 'default'},
             ],
         },
-        'domain_config': {
-            'name': 'product',
-            'dom_config_list': [
-                {'name': 'list', 'domain_list': ['a', 'b', 'c', 'd', 'e']},
-                {'name': 'list', 'domain_list': [[4], [5], [0], [0.7], [-0.7]]},
-            ],
-        },
     } 
 trial:
   command: python trial.py

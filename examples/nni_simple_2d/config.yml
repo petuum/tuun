@@ -16,7 +16,7 @@ useAnnotation: false
     ##choice: maximize, minimize
     #optimize_mode: maximize
 tuner:
-  codeDir: /home/ubuntu/proj/tuun-dev/tuun
+  codeDir: /storage/baoyu/ers/tuun-dev/tuun
   classFileName: nni_tuner.py
   className: TuunTuner
   # Any parameter need to pass to your tuner class __init__ constructor
@@ -39,7 +39,6 @@ tuner:
         'acqfunction_config': {'name': 'default', 'acq_str': 'ucb'},
         #'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
         'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
-        'domain_config': {'name': 'real', 'min_max': [[-10.0, 10.0], [-4.0, 4.0]]},
     } 
 trial:
   command: python trial.py

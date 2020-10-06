@@ -5,10 +5,64 @@ from argparse import Namespace
 import numbers
 import copy
 from nni.tuner import Tuner
-from nni.utils import OptimizeMode, extract_scalar_reward
-
+from nni.utils import NodeType, OptimizeMode, extract_scalar_reward
 from tuun.main import Tuun
 
+
+def json2space(in_x, name=NodeType.ROOT):
+    """
+    Change json to search space in tuun
+
+    Parameters
+    ----------
+    in_x : dict/list/str/int/float
+        The part of json.
+    name : str
+        name could be NodeType.ROOT, NodeType.TYPE, NodeType.VALUE or NodeType.INDEX, NodeType.NAME.
+    """
+    out_y = copy.deepcopy(in_x)
+    if isinstance(in_x, dict):
+        if NodeType.TYPE in in_x.keys():
+            _type = in_x[NodeType.TYPE]
+            name = name + '-' + _type
+            _value = json2space(in_x[NodeType.VALUE], name=name)
+            if any(isinstance(x, int) for x in _value) and \
+                any(isinstance(x, float) for x in _value):
+                _value = [float(x) for x in _value]
+            if all(isinstance(x, type(_value[0])) for x in _value):
+                if _type == 'choice':
+                    if isinstance(_value[0], (int, float)):
+                        out_y = {'name': 'list', 'domain_list': [[x] for x in _value]}
+                    else:
+                        out_y = {'name': 'list', 'domain_list': _value}
+                elif _type == 'uniform':
+                    out_y = {'name': 'real', 'min_max': _value}
+                #elif _type == 'randint': # TO DO
+                else:
+                    raise RuntimeError(
+                        'the search space type is not supported by tuun'
+                    )
+            else:
+                raise RuntimeError(
+                    '\'_value\' should have the same type of elements'
+                )
+        else:
+            out_y = list()
+            for key in in_x.keys():
+                out_y.append(json2space(in_x[key], name + '[%s]' % str(key)))
+    elif isinstance(in_x, list):
+        out_y = list()
+        for i, x_i in enumerate(in_x):
+            if isinstance(x_i, dict):
+                # if NodeType.NAME not in x_i.keys():
+                #     raise RuntimeError(
+                #         '\'_name\' key is not found in this nested search space.'
+                #     )
+                raise RuntimeError(
+                    'nested search space is not supported by tuun'
+                )
+            out_y.append(json2space(x_i, name + '[%d]' % i))
+    return out_y
 
 class TuunTuner(Tuner):
     """
@@ -26,7 +80,6 @@ class TuunTuner(Tuner):
         """
         self._set_tuun(tuun_config)
         self._set_data(initial_data)
-
     def _set_tuun(self, tuun_config):
         """Configure and instantiate self.tuun."""
         self.tuun = Tuun(tuun_config)
@@ -50,14 +103,37 @@ class TuunTuner(Tuner):
     def update_search_space(self, search_space):
         """
         Update search space. Input search_space contains information that the user
-        pre-defines.
+        pre-defines. The search space is set before generating first hyper-parameters
 
         Parameters
         ----------
         search_space : dict
             Information to define a search space.
         """
-        pass
+        dom_config = json2space(search_space)
+
+        # Merge multiple min_max to a multi-dimension list
+        dom_config_list = []
+        dom_config_real = {'name': 'real', 'min_max': []}
+        for xi in dom_config:
+            if xi['name'] == 'real':
+                dom_config_real['min_max'].append(xi['min_max'])
+            else:
+                dom_config_list.append(xi)
+        if len(dom_config_real['min_max']) > 0:
+            dom_config_list.append(dom_config_real)
+
+        if len(dom_config_list) == 1:
+            self.tuun.config.domain_config = dom_config_list[0]
+        else:
+            self.tuun.config.domain_config = {'name': 'product'}
+            self.tuun.config.domain_config.update({'dom_config_list': dom_config_list})
+        if self.tuun.config.backend == 'dragonfly' and \
+            self.tuun.config.opt_config is None:
+            self.tuun.config.opt_config = {'name': self.tuun.config.domain_config['name']}
+        
+        print(self.tuun.config.domain_config)
+        self.tuun._set_backend()
 
     def generate_parameters(self, parameter_id, **kwargs):
         """
