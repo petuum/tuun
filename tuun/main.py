@@ -127,7 +127,9 @@ class Tuun:
             if dt == 'list':
                 pao_config_list.append({'name': 'default'})
             elif dt == 'real':
-                pao_config_list.append({'name': 'cobyla', 'init_str': 'init_opt'})
+                pao_config_list.append(
+                        {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': False}
+                )
 
         self.config.acqoptimizer_config = {
             'name': 'product',
@@ -253,7 +255,7 @@ class Tuun:
         data=None,
         data_update_fun=None,
         use_backend_minimize=False,
-        verbose=True,
+        verbose=False,
         seed=None,
     ):
         """
@@ -297,7 +299,7 @@ class Tuun:
             n_data_init = 0 if data is None else len(data.x)
 
             for i in range(n_iter):
-                x = self.suggest_to_minimize(data=data, verbose=False, seed=seed)
+                x = self.suggest_to_minimize(data=data, verbose=verbose, seed=seed)
                 y = self._format_function_output(f(x))
 
                 # Update data
