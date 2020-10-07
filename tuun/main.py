@@ -157,56 +157,51 @@ class Tuun:
     def _transform_domain_config(self):
         """Transform domain."""
 
-        # Normalize domain for probo backend: all 'real' blocks normalized to [0, 10.0].
-        # TODO: also for 'int'
-        if self.config.backend == 'probo':
-            if self.config.domain_config['name'] == 'product':
-                dom_config_list = self.config.domain_config['dom_config_list']
-                for block_idx, domain_config in enumerate(dom_config_list):
-                    if domain_config['name'] == 'real':
-                        min_max = domain_config['min_max']
-                        domain_config['min_max_init'] = min_max
-                        domain_config['min_max'] = [[0, 10] for _ in min_max]
-                self.config.normalize_real = True
-                self._set_backend()
+        # Normalize
+        if self.config.domain_config['name'] == 'product':
+            for domain_config in self.config.domain_config['dom_config_list']:
+                domain_config = self._normalize_domain_config_block(domain_config)
+        else:
+            domain_config = self.config.domain_config
+            domain_config = self._normalize_domain_config_block(domain_config)
+        self.config.normalize_real = True
+
+        # Reset self.backend
+        self._set_backend()
+
+    def _normalize_domain_config_block(self, domain_config):
+        """Return domain config, possibly normalized to [0, 10]."""
+        if domain_config['name'] == 'real':
+            domain_config['min_max_init'] = domain_config['min_max']
+            domain_config['min_max'] = [[0, 10] for _ in domain_config['min_max']]
+        return domain_config
 
     def _transform_data(self, data, inverse=False):
         """Return transformed data Namespace."""
-
-        # Transform data for probo backend
-        if self.config.backend == 'probo':
-            if self.config.domain_config['name'] == 'product':
-                data.x = [self._transform_x(xi, inverse=inverse) for xi in data.x]
+        data.x = [self._transform_x(xi, inverse=inverse) for xi in data.x]
         return data
 
     def _transform_x(self, x, inverse=False):
         """Return transformed domain point x."""
-
-        # Transform each block of x for probo backend
-        if self.config.backend == 'probo':
-            if self.config.domain_config['name'] == 'product':
-                dom_config_list = self.config.domain_config['dom_config_list']
-                for block_idx, domain_config in enumerate(dom_config_list):
-                    x = self._transform_x_block(x, block_idx, inverse=inverse)
-
+        if self.config.domain_config['name'] == 'product':
+            dom_config_list = self.config.domain_config['dom_config_list']
+            for x_block, dom_config in zip(x, dom_config_list):
+                x_block = self._normalize_x_block(x_block, dom_config, inverse=inverse)
+        else:
+            x = self._normalize_x_block(x, self.config.domain_config, inverse=inverse)
         return x
 
-    def _transform_x_block(self, x, block_idx, inverse=False):
-        """Return domain point x with one block transformed."""
-        domain_config = self.config.domain_config['dom_config_list'][block_idx]
-
-        # Normalize domain: all 'real' blocks normalized to [0, 10.0].
-        # TODO: also for 'int'
+    def _normalize_x_block(self, x, domain_config, inverse=False):
+        """Return x, possibly normalized to [0, 10]."""
         normalize_real = getattr(self.config, 'normalize_real', False)
         if domain_config['name'] == 'real' and normalize_real:
             for i, bounds in enumerate(domain_config['min_max_init']):
                 if inverse is True:
                     scale_factor = (bounds[1] - bounds[0]) / 10.0
-                    x[block_idx][i] = x[block_idx][i] * scale_factor + bounds[0]
+                    x[i] = x[i] * scale_factor + bounds[0]
                 else:
                     scale_factor = 10.0 / (bounds[1] - bounds[0])
-                    x[block_idx][i] = (x[block_idx][i] - bounds[0]) * scale_factor
-
+                    x[i] = (x[i] - bounds[0]) * scale_factor
         return x
 
     def suggest_to_minimize(self, data=None, verbose=True, seed=None):
