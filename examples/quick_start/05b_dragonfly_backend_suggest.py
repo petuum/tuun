@@ -1,6 +1,6 @@
 from tuun.backend import DragonflyBackend
 
-domain_config = {'name': 'real', 'bounds_list': [(-8.0, 7.0), (-7.0, 8.0)]}
+domain_config = {'name': 'real', 'min_max': [(-8.0, 7.0), (-7.0, 8.0)]}
 opt_config = {'name': 'real'}
 dragonfly_config = {'acq_str': 'ucb-ei', 'n_init_rs': 0}
 
