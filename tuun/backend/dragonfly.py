@@ -91,6 +91,9 @@ class DragonflyBackend(Backend):
         opt = self._get_opt()
         assert opt.options.num_init_evals == 0.0
 
+        if isinstance(data, dict):
+            data = Namespace(**data)
+
         if len(data.x) > 0:
             self._tell_opt_data(opt, data)
         suggestion = opt.ask()
@@ -148,7 +151,7 @@ class DragonflyBackend(Backend):
         assert name in ['real', 'product']
 
         if name == 'real':
-            bounds_list = self.domain_config['bounds_list']
+            bounds_list = self.domain_config['min_max']
             domain = dragonfly.exd.domains.EuclideanDomain(bounds_list)
         elif name == 'product':
             domain, _ = self._get_cpgp_domain_and_orderings()
