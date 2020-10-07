@@ -35,6 +35,7 @@ class Tuun:
 
         # ProBO specific
         if self.config.backend == 'probo':
+
             model_config = getattr(config, 'model_config', None)
             if model_config is None:
                 model_config = {'name': 'gpytorchgp'}
@@ -76,6 +77,117 @@ class Tuun:
                 dragonfly_config=self.config.dragonfly_config,
             )
 
+    def set_config_from_list(self, search_space_list):
+        """
+        Set the Tuun search space given a search_space_list, a list of tuples each
+        containing a domain type and a domain bounds specification.  This method will
+        overwrite self.config and self.backend.
+
+        Parameters
+        ----------
+        search_space_list : list
+            List of tuples, where each element tuple corresponds to a separate
+            optimization block which can have a unique domain type. Each element tuple
+            consists of (domain type, domain bounds specification).
+        """
+        domain_types = [ss[0] for ss in search_space_list]
+        assert all([dt in ['real', 'list'] for dt in domain_types])
+
+        # Set backend
+        self.config.backend = 'probo'
+
+        # Set default model_config
+        self.config.model_config = {
+            'name': 'simpleproductkernelgp',
+            'ls': 3.0,
+            'alpha': 1.5,
+            'sigma': 1e-5,
+            'domain_spec': domain_types,
+        }
+
+        # Set default acqoptimizer_config
+        pao_config_list = []
+        for dt in domain_types:
+            if dt == 'list':
+                pao_config_list.append({'name': 'default'})
+            elif dt == 'real':
+                pao_config_list.append(
+                        {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': False}
+                )
+
+        self.config.acqoptimizer_config = {
+            'name': 'product',
+            'n_iter_bcd': 3,
+            'n_init_rs': 5,
+            'pao_config_list': pao_config_list,
+        }
+
+        # Set default domain_config
+        dom_config_list = []
+        for i, dt in enumerate(domain_types):
+            bounds_spec = search_space_list[i][1]
+            if dt == 'list':
+                dom_config_list.append({'name': dt, 'domain_list': bounds_spec})
+            elif dt == 'real':
+                dom_config_list.append({'name': dt, 'min_max': bounds_spec})
+
+        self.config.domain_config = {
+            'name': 'product', 'dom_config_list': dom_config_list,
+        }
+
+        # Set self.backend with above settings
+        self._set_backend()
+
+    def _transform_domain_config(self):
+        """Transform domain."""
+
+        # Normalize
+        if self.config.domain_config['name'] == 'product':
+            for domain_config in self.config.domain_config['dom_config_list']:
+                domain_config = self._normalize_domain_config_block(domain_config)
+        else:
+            domain_config = self.config.domain_config
+            domain_config = self._normalize_domain_config_block(domain_config)
+        self.config.normalize_real = True
+
+        # Reset self.backend
+        self._set_backend()
+
+    def _normalize_domain_config_block(self, domain_config):
+        """Return domain config, possibly normalized to [0, 10]."""
+        if domain_config['name'] == 'real':
+            domain_config['min_max_init'] = domain_config['min_max']
+            domain_config['min_max'] = [[0, 10] for _ in domain_config['min_max']]
+        return domain_config
+
+    def _transform_data(self, data, inverse=False):
+        """Return transformed data Namespace."""
+        data.x = [self._transform_x(xi, inverse=inverse) for xi in data.x]
+        return data
+
+    def _transform_x(self, x, inverse=False):
+        """Return transformed domain point x."""
+        if self.config.domain_config['name'] == 'product':
+            dom_config_list = self.config.domain_config['dom_config_list']
+            for x_block, dom_config in zip(x, dom_config_list):
+                x_block = self._normalize_x_block(x_block, dom_config, inverse=inverse)
+        else:
+            x = self._normalize_x_block(x, self.config.domain_config, inverse=inverse)
+        return x
+
+    def _normalize_x_block(self, x, domain_config, inverse=False):
+        """Return x, possibly normalized to [0, 10]."""
+        normalize_real = getattr(self.config, 'normalize_real', False)
+        if domain_config['name'] == 'real' and normalize_real:
+            for i, bounds in enumerate(domain_config['min_max_init']):
+                if inverse is True:
+                    scale_factor = (bounds[1] - bounds[0]) / 10.0
+                    x[i] = x[i] * scale_factor + bounds[0]
+                else:
+                    scale_factor = 10.0 / (bounds[1] - bounds[0])
+                    x[i] = (x[i] - bounds[0]) * scale_factor
+        return x
+
     def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
         Suggest a single design (i.e. a point to evaluate).
@@ -101,10 +213,18 @@ class Tuun:
             seed = np.random.randint(13337)
         subseed = seed if data is None else seed + len(data.x)
 
+        # Transform data
+        data = self._transform_data(data)
+
         # Call backend suggest_to_minimize method
         suggestion = self.backend.suggest_to_minimize(
             data=data, verbose=verbose, seed=subseed
         )
+
+        # Inverse transform data and suggestion
+        data = self._transform_data(data, inverse=True)
+        suggestion = self._transform_x(suggestion, inverse=True)
+
         return suggestion
 
     def minimize_function(
@@ -114,7 +234,7 @@ class Tuun:
         data=None,
         data_update_fun=None,
         use_backend_minimize=False,
-        verbose=True,
+        verbose=False,
         seed=None,
     ):
         """
@@ -145,6 +265,9 @@ class Tuun:
         if isinstance(data, dict):
             data = Namespace(**data)
 
+        # Transform domain
+        self._transform_domain_config()
+
         if use_backend_minimize:
             result = self._run_backend_minimize_function()
         else:
@@ -155,7 +278,7 @@ class Tuun:
             n_data_init = 0 if data is None else len(data.x)
 
             for i in range(n_iter):
-                x = self.suggest_to_minimize(data=data, verbose=False, seed=seed)
+                x = self.suggest_to_minimize(data=data, verbose=verbose, seed=seed)
                 y = self._format_function_output(f(x))
 
                 # Update data
