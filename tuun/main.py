@@ -78,8 +78,11 @@ class Tuun:
         """Set self.config.seed and numpy random seed."""
         if seed is not None:
             self.config.seed = seed
-        else:
-            self.config.seed = getattr(config, 'seed', np.random.randint(13337))
+        elif config is not None:
+            self.config.seed = getattr(config, 'seed', None)
+
+        if not getattr(self.config, 'seed', None):
+            self.config.seed = np.random.randint(13337)
 
         np.random.seed(self.config.seed)
 
@@ -211,7 +214,7 @@ class Tuun:
                     x[i] = (x[i] - bounds[0]) * scale_factor
         return x
 
-    def suggest_to_minimize(self, data=None, verbose=True):
+    def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
         Suggest a single design (i.e. a point to evaluate) to minimize.
 
@@ -221,7 +224,10 @@ class Tuun:
             Dictionary with keys x (list) and y (1D numpy ndarray).
         verbose : bool
             If True, print information.
+        seed : int
+            If not None, set the random seed to seed.
         """
+        self._set_seed(seed=seed)
         data = self._format_data_input(data)
 
         # Transform data
@@ -254,14 +260,8 @@ class Tuun:
         seed : int
             If not None, set the random seed to seed.
         """
-        if data is not None:
-            if isinstance(data, dict):
-                data = Namespace(**data)
-            if not hasattr(data, 'y'):
-                raise Exception('Input data (if not None) must contain list (x and) y.')
-            data.y = [-1*v for v in data.y]
-
-        # Claim: if data is None, self.backend.suggest_to_minimize also works for maximization.
+        data = self._format_data_input(data)
+        data.y = [-1*v for v in data.y]
         suggestion = self.suggest_to_minimize(data, verbose, seed)
         return suggestion
 
@@ -273,6 +273,7 @@ class Tuun:
         data_update_fun=None,
         use_backend_minimize=False,
         verbose=False,
+        seed=None,
     ):
         """
         Run tuning system to minimize function f.
@@ -292,7 +293,10 @@ class Tuun:
             via calls to self.suggest_to_minimize().
         verbose : bool
             If True, print information.
+        seed : int
+            If not None, set the random seed to seed.
         """
+        self._set_seed(seed=seed)
         data = self._format_data_input(data)
 
         # Transform domain
@@ -322,11 +326,17 @@ class Tuun:
 
     def _format_data_input(self, data):
         """Format and return data Namespace."""
+        if data is None:
+            data = Namespace(x=[], y=[])
+
         if isinstance(data, dict):
             data = Namespace(**data)
 
-        if data is None:
-            data = Namespace(x=[], y=[])
+        if not hasattr(data, 'x'):
+            raise Exception('Input data must contain x, a list.')
+
+        if not hasattr(data, 'y'):
+            raise Exception('Input data must contain y, a 1d numpy ndarray.')
 
         return data
 
