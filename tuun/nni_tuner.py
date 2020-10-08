@@ -80,6 +80,14 @@ class TuunTuner(Tuner):
         """
         self._set_tuun(tuun_config)
         self._set_data(initial_data)
+
+    def _set_optimize_mode(self, tuun_config):
+        """Configure the mode to choose to minimize or maximize."""
+        assert isinstance(tuun_config, dict)
+        self._optimize_mode = tuun_config.get('optimize_mode', 'min')
+        print('optimize_mode:', self._optimize_mode)
+        assert self._optimize_mode in ['min', 'max']
+
     def _set_tuun(self, tuun_config):
         """Configure and instantiate self.tuun."""
         self.tuun = Tuun(tuun_config)
