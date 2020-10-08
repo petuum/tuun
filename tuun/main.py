@@ -22,13 +22,11 @@ class Tuun:
 
     def _configure_tuun(self, config_dict):
         """Configure Tuun based on config_dict and defaults."""
-
         config = Namespace(**config_dict)
-
         self.config = Namespace()
 
         # Tuun parameters
-        self.config.seed = getattr(config, 'seed', None)
+        self._set_seed(config=config)
         self.config.print_x_str_len = getattr(config, 'print_x_str_len', 30)
 
         self.config.backend = getattr(config, 'backend', 'probo')
@@ -75,6 +73,15 @@ class Tuun:
 
             dragonfly_config = getattr(config, 'dragonfly_config', None)
             self.config.dragonfly_config = dragonfly_config
+
+    def _set_seed(self, config=None, seed=None):
+        """Set self.config.seed and numpy random seed."""
+        if seed is not None:
+            self.config.seed = seed
+        else:
+            self.config.seed = getattr(config, 'seed', np.random.randint(13337))
+
+        np.random.seed(self.config.seed)
 
     def _set_backend(self):
         """Set Tuun backend tuning system."""
@@ -204,7 +211,7 @@ class Tuun:
                     x[i] = (x[i] - bounds[0]) * scale_factor
         return x
 
-    def suggest_to_minimize(self, data=None, verbose=True, seed=None):
+    def suggest_to_minimize(self, data=None, verbose=True):
         """
         Suggest a single design (i.e. a point to evaluate).
 
@@ -214,23 +221,14 @@ class Tuun:
             Dictionary with keys x (list) and y (1D numpy ndarray).
         verbose : bool
             If True, print information.
-        seed : int
-            If not None, set the random seed to seed.
         """
-        if seed is None:
-            seed = self.config.seed
-
-        # Convert data to Namespace
-        if isinstance(data, dict):
-            data = Namespace(**data)
-
-        # Set subseed (depends on data)
-        if seed is None:
-            seed = np.random.randint(13337)
-        subseed = seed if data is None else seed + len(data.x)
+        data = self._format_data_input(data)
 
         # Transform data
         data = self._transform_data(data)
+
+        # Set data-dependent subseed
+        subseed = int(np.random.uniform(12345 * (len(data.x) + 1)))
 
         # Call backend suggest_to_minimize method
         suggestion = self.backend.suggest_to_minimize(
@@ -251,7 +249,6 @@ class Tuun:
         data_update_fun=None,
         use_backend_minimize=False,
         verbose=False,
-        seed=None,
     ):
         """
         Run tuning system to minimize function f.
@@ -271,15 +268,8 @@ class Tuun:
             via calls to self.suggest_to_minimize().
         verbose : bool
             If True, print information.
-        seed : int
-            If not None, set the random seed to seed.
         """
-        if seed is None:
-            seed = self.config.seed
-
-        # Convert data to Namespace
-        if isinstance(data, dict):
-            data = Namespace(**data)
+        data = self._format_data_input(data)
 
         # Transform domain
         self._transform_domain_config()
@@ -288,13 +278,10 @@ class Tuun:
             result = self._run_backend_minimize_function()
         else:
             # Minimize function via calls to self.suggest_to_minimize()
-            if data is None:
-                data = Namespace(x=[], y=[])
-
             n_data_init = 0 if data is None else len(data.x)
 
             for i in range(n_iter):
-                x = self.suggest_to_minimize(data=data, verbose=verbose, seed=seed)
+                x = self.suggest_to_minimize(data=data, verbose=verbose)
                 y = self._format_function_output(f(x))
 
                 # Update data
@@ -308,6 +295,16 @@ class Tuun:
             result = self._get_final_result(data)
 
         return result
+
+    def _format_data_input(self, data):
+        """Format and return data Namespace."""
+        if isinstance(data, dict):
+            data = Namespace(**data)
+
+        if data is None:
+            data = Namespace(x=[], y=[])
+
+        return data
 
     def _format_function_output(self, y_out):
         """Format output of function query."""
