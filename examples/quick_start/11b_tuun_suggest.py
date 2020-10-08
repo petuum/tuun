@@ -3,7 +3,7 @@ from tuun.main import Tuun
 config = {
     'backend': 'dragonfly',
     'seed': 11,
-    'domain_config': {'name': 'real', 'bounds_list': [(-0.5, 2.5), (-0.6, 2.6)]},
+    'domain_config': {'name': 'real', 'min_max': [[-0.5, 2.5], [-0.6, 2.6]]},
     'opt_config': {'name': 'real'},
     'dragonfly_config': {'acq_str': 'ucb-ei', 'n_init_rs': 0}
 }
