@@ -213,7 +213,7 @@ class Tuun:
 
     def suggest_to_minimize(self, data=None, verbose=True):
         """
-        Suggest a single design (i.e. a point to evaluate).
+        Suggest a single design (i.e. a point to evaluate) to minimize.
 
         Parameters
         ----------
@@ -239,6 +239,30 @@ class Tuun:
         data = self._transform_data(data, inverse=True)
         suggestion = self._transform_x(suggestion, inverse=True)
 
+        return suggestion
+
+    def suggest_to_maximize(self, data=None, verbose=True, seed=None):
+        """
+        Suggest a single design (i.e. a point to evaluate) to maximize.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary with keys x (list) and y (1D numpy ndarray).
+        verbose : bool
+            If True, print information.
+        seed : int
+            If not None, set the random seed to seed.
+        """
+        if data is not None:
+            if isinstance(data, dict):
+                data = Namespace(**data)
+            if not hasattr(data, 'y'):
+                raise Exception('Input data (if not None) must contain list (x and) y.')
+            data.y = [-1*v for v in data.y]
+
+        # Claim: if data is None, self.backend.suggest_to_minimize also works for maximization.
+        suggestion = self.suggest_to_minimize(data, verbose, seed)
         return suggestion
 
     def minimize_function(
