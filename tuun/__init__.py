@@ -2,6 +2,10 @@
 Code for tuun.
 """
 
+from .backend import ProboBackend, DragonflyBackend
+
+from .main import Tuun
+
 from .probo import (
     AcqFunction,
     AcqOptimizer,
