@@ -1,0 +1,35 @@
+authorName: default
+experimentName: simple_experiment
+trialConcurrency: 1
+maxExecDuration: 1h
+maxTrialNum: 20
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space.json
+#choice: true, false
+useAnnotation: false
+#tuner:
+  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  ##SMAC (SMAC should be installed through nnictl)
+  #builtinTunerName: TPE
+  #classArgs:
+    ##choice: maximize, minimize
+    #optimize_mode: maximize
+tuner:
+  codeDir: /home/ubuntu/proj/tuun-dev/tuun
+  classFileName: nni_tuner.py
+  className: TuunTuner
+  # Any parameter need to pass to your tuner class __init__ constructor
+  # can be specified in this optional classArgs field, for example
+  classArgs:
+    tuun_config: {
+        'optimize_mode': 'min',
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ei'},
+        # Default: 
+        #   - Chooses real domain with min_max: [[0, 10]]
+        #   - An example point in domain: [5.5] <-- one real-vector
+    } 
+trial:
+  command: python trial.py
+  codeDir: .
+  gpuNum: 0
