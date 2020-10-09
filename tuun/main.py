@@ -37,7 +37,7 @@ class Tuun:
 
             domain_config = getattr(config, 'domain_config', None)
             if domain_config is None:
-                domain_config = {'name': 'real', 'min_max': [(0.0, 10.0)]}
+                domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
             self.config.domain_config = domain_config
 
             model_config = getattr(config, 'model_config', None)
@@ -63,7 +63,7 @@ class Tuun:
 
             domain_config = getattr(config, 'domain_config', None)
             if domain_config is None:
-                domain_config = {'name': 'real', 'min_max': [(0.0, 10.0)]}
+                domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
             self.config.domain_config = domain_config
 
             opt_config = getattr(config, 'opt_config', None)
