@@ -48,13 +48,6 @@ tuner:
                 {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': True, 'jitter_val': 0.05},
             ],
         },
-        'domain_config': {
-            'name': 'product',
-            'dom_config_list': [
-                {'name': 'real', 'min_max': [[-10, 10]]},
-                {'name': 'real', 'min_max': [[-4, 4]]},
-            ],
-        },
     } 
 trial:
   command: python trial.py
