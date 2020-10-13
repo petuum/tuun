@@ -15,10 +15,11 @@ def json2space(in_x, name=NodeType.ROOT):
 
     Parameters
     ----------
-    in_x : dict/list/str/int/float
+    in_x : dict_or_list_or_str_or_int_or_float
         The part of json.
     name : str
-        name could be NodeType.ROOT, NodeType.TYPE, NodeType.VALUE or NodeType.INDEX, NodeType.NAME.
+        name can be NodeType.ROOT, NodeType.TYPE, NodeType.VALUE or NodeType.INDEX,
+        NodeType.NAME.
     """
     out_y = copy.deepcopy(in_x)
     if isinstance(in_x, dict):
@@ -112,7 +113,7 @@ class TuunTuner(Tuner):
     def update_search_space(self, search_space):
         """
         Update search space. Input search_space contains information that the user
-        pre-defines. The search space is set before generating first hyper-parameters
+        pre-defines. The search space is set before generating first hyper-parameters.
 
         Parameters
         ----------
