@@ -127,7 +127,7 @@ class Tuun:
         self.config.model_config = {
             'name': 'simpleproductkernelgp',
             'ls': 3.0,
-            'alpha': 1.5,
+            'alpha': 1.85,
             'sigma': 1e-5,
             'domain_spec': domain_types,
         }
