@@ -27,7 +27,8 @@ class Tuun:
 
         # Tuun parameters
         self._set_seed(config=config)
-        self.config.print_x_str_len = getattr(config, 'print_x_str_len', 30)
+        self.config.print_x_str_len = getattr(config, 'print_x_str_len', 38)
+        self.config.normalize_real = getattr(config, 'normalize_real', False)
 
         self.config.backend = getattr(config, 'backend', 'probo')
         assert self.config.backend in ['probo', 'dragonfly']
@@ -174,14 +175,14 @@ class Tuun:
         else:
             domain_config = self.config.domain_config
             domain_config = self._normalize_domain_config_block(domain_config)
-        self.config.normalize_real = True
 
         # Reset self.backend
         self._set_backend()
 
     def _normalize_domain_config_block(self, domain_config):
         """Return domain config, possibly normalized to [0, 10]."""
-        if domain_config['name'] == 'real':
+        normalize_real = getattr(self.config, 'normalize_real', False)
+        if domain_config['name'] == 'real' and normalize_real:
             domain_config['min_max_init'] = domain_config['min_max']
             domain_config['min_max'] = [[0, 10] for _ in domain_config['min_max']]
         return domain_config
