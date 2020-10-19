@@ -4,10 +4,10 @@ Code to compile stan models
 
 import argparse
 
-import probo.models.stan.gp as gp
-import probo.models.stan.gp_fixedsig as gp_fixedsig
-import probo.models.stan.gp_distmat as gp_distmat
-import probo.models.stan.gp_distmat_fixedsig as gp_distmat_fixedsig
+from gp import get_model as gp_get_model
+from gp_fixedsig import get_model as gp_fixedsig_get_model
+from gp_distmat import get_model as gp_distmat_get_model
+from gp_distmat_fixedsig import get_model as gp_distmat_fixedsig_get_model
 
 
 def main(model_str):
@@ -15,13 +15,13 @@ def main(model_str):
     Re-compile model specified by model_str.
     """
     if model_str == 'gp':
-        model = gp.get_model(recompile=True)
+        model = gp_get_model(recompile=True)
     elif model_str == 'gp_fixedsig':
-        model = gp_fixedsig.get_model(recompile=True)
+        model = gp_fixedsig_get_model(recompile=True)
     elif model_str == 'gp_distmat':
-        model = gp_distmat.get_model(recompile=True)
+        model = gp_distmat_get_model(recompile=True)
     elif model_str == 'gp_distmat_fixedsig':
-        model = gp_distmat_fixedsig.get_model(recompile=True)
+        model = gp_distmat_fixedsig_get_model(recompile=True)
 
 
 if __name__ == "__main__":
