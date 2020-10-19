@@ -5,27 +5,32 @@ using a kernel based on a given distance matrix, and fixed sigma.
 
 import time
 import pickle
+import pathlib
 import pystan
 
 
 def get_model(recompile=False, print_status=True):
     """Return stan model. Recompile model if recompile is True."""
 
-    model_file_str = 'tuun/probo/models/stan/model_pkls/gp_distmat_fixedsig.pkl'
+    model_str = 'gp_distmat_fixedsig'
+
+    base_path =  pathlib.Path(__file__).parent
+    relative_path_to_model = 'model_pkls/' + model_str + '.pkl'
+    model_path = str((base_path / relative_path_to_model).resolve())
 
     if recompile:
         starttime = time.time()
         model = pystan.StanModel(model_code=get_model_code())
         buildtime = time.time() - starttime
-        with open(model_file_str, 'wb') as f:
+        with open(model_path, 'wb') as f:
             pickle.dump(model, f)
         if print_status:
             print('*Time taken to compile = ' + str(buildtime) + ' seconds.\n-----')
-            print('*Stan model saved in file ' + model_file_str + '.\n-----')
+            print('*Stan model saved in file ' + model_path + '.\n-----')
     else:
-        model = pickle.load(open(model_file_str, 'rb'))
+        model = pickle.load(open(model_path, 'rb'))
         if print_status:
-            print('*Stan model loaded from file {}'.format(model_file_str))
+            print('*Stan model loaded from file {}'.format(model_path))
     return model
 
 
