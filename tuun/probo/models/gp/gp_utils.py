@@ -44,7 +44,7 @@ def kern_distmat(xmat1, xmat2, ls, alpha, distfn):
     return kernmat
 
 
-def kern_simple_list(xlist1, xlist2, ls, alpha, base_dist=0.0):
+def kern_simple_list(xlist1, xlist2, ls, alpha, base_dist=5.0):
     """
     Kernel for two lists containing elements that can be compared for equality.
     K(a,b) = 1 + base_dist if a and b are equal and K(a,b) = base_dist otherwise.
@@ -55,7 +55,7 @@ def kern_simple_list(xlist1, xlist2, ls, alpha, base_dist=0.0):
     return kernmat
 
 
-def simple_list_distmat(xlist1, xlist2, weight=10.0):
+def simple_list_distmat(xlist1, xlist2, weight=1.0):
     """
     Return distance matrix containing zeros when xlist1[i] == xlist2[j] and 0 otherwise.
     """
@@ -75,14 +75,17 @@ def simple_list_distmat(xlist1, xlist2, weight=10.0):
     return distmat
 
 
-def get_product_kernel(kernel_list):
+def get_product_kernel(kernel_list, additive=False):
     """Given a list of kernel functions, return product kernel."""
 
     def product_kernel(x1, x2, ls, alpha):
         """Kernel returning elementwise-product of kernel matrices from kernel_list."""
         mat_prod = kernel_list[0](x1, x2, ls, 1.0)
         for kernel in kernel_list[1:]:
-            mat_prod = mat_prod * kernel(x1, x2, ls, 1.0)
+            if additive:
+                mat_prod = mat_prod + kernel(x1, x2, ls, 1.0)
+            else:
+                mat_prod = mat_prod * kernel(x1, x2, ls, 1.0)
         mat_prod = alpha ** 2 * mat_prod
         return mat_prod
 
@@ -105,7 +108,7 @@ def get_cholesky_decomp(k11_nonoise, sigma, psd_str):
         return stable_cholesky(k11)
 
 
-def stable_cholesky(mmat, make_psd=True):
+def stable_cholesky(mmat, make_psd=True, verbose=False):
     """Return a 'stable' cholesky decomposition of mmat."""
     if mmat.size == 0:
         return mmat
@@ -126,14 +129,15 @@ def stable_cholesky(mmat, make_psd=True):
                 break_loop = True
             except np.linalg.linalg.LinAlgError:
                 if diag_noise_power > -9:
-                    print(
-                        '\tstable_cholesky failed with '
-                        'diag_noise_power=%d.' % (diag_noise_power)
-                    )
+                    if verbose:
+                        print(
+                            '\t*stable_cholesky failed with '
+                            'diag_noise_power=%d.' % (diag_noise_power)
+                        )
                 diag_noise_power += 1
             if diag_noise_power >= 5:
                 print(
-                    '\t***** stable_cholesky failed: added diag noise '
+                    '\t*stable_cholesky failed: added diag noise '
                     '= %e' % (diag_noise)
                 )
     return lmat
