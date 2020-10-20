@@ -55,7 +55,7 @@ def kern_simple_list(xlist1, xlist2, ls, alpha, base_dist=5.0):
     return kernmat
 
 
-def simple_list_distmat(xlist1, xlist2, weight=1.0):
+def simple_list_distmat(xlist1, xlist2, weight=1.0, additive=False):
     """
     Return distance matrix containing zeros when xlist1[i] == xlist2[j] and 0 otherwise.
     """
@@ -63,14 +63,17 @@ def simple_list_distmat(xlist1, xlist2, weight=1.0):
     len1 = len(xlist1)
     len2 = len(xlist2)
     try:
-        distmat = weight * np.array([x[0] != x[1] for x in prod_list]).astype(
-            int
-        ).reshape(len1, len2)
+        binary_mat = np.array([x[0] != x[1] for x in prod_list]).astype(int)
     except:
         # For cases where comparison returns iterable of bools
-        distmat = weight * np.array([all(x[0] != x[1]) for x in prod_list]).astype(
-            int
-        ).reshape(len1, len2)
+        binary_mat = np.array([all(x[0] != x[1]) for x in prod_list]).astype(int)
+
+    binary_mat = binary_mat.reshape(len1, len2)
+
+    if additive:
+        distmat = weight + binary_mat
+    else:
+        distmat = weight * binary_mat
 
     return distmat
 

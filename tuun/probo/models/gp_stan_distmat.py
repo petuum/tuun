@@ -69,7 +69,7 @@ class StanDistmatGp(StanGp):
         if domain_spec_single is 'real':
             return lambda a, b: squared_euc_distmat(a, b, 1.0)
         elif domain_spec_single is 'list':
-            return simple_list_distmat
+            return lambda a, b: simple_list_distmat(a, b, 0.1, additive=True)
 
     def convert_distmat_function_for_sum(self, distmat_function, i):
         """
