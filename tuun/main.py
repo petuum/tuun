@@ -124,13 +124,26 @@ class Tuun:
         self.config.backend = 'probo'
 
         # Set default model_config
-        self.config.model_config = {
-            'name': 'simpleproductkernelgp',
-            'ls': 3.0,
-            'alpha': 1.85,
-            'sigma': 1e-5,
-            'domain_spec': domain_types,
-        }
+        if self.config.model_config.get('name') == 'standistmatgp':
+            self.config.model_config = {
+                'name': 'standistmatgp',
+                'model_str': 'optfixedsig',
+                'ig1': 4.0,
+                'ig2': 3.0,
+                'n1': 1.0,
+                'n2': 1.0,
+                'sigma': 1e-5,
+                'niter': 70,
+                'domain_spec': domain_types,
+            }
+        else:
+            self.config.model_config = {
+                'name': 'simpleproductkernelgp',
+                'ls': 3.0,
+                'alpha': 1.85,
+                'sigma': 1e-5,
+                'domain_spec': domain_types,
+            }
 
         # Set default acqoptimizer_config
         pao_config_list = []
