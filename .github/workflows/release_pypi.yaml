@@ -6,6 +6,9 @@ name: Release PyPi Packages
 on:
   release:
     types: [created]
+  # TODO: Remove
+  pull_request:
+    branches: [master]
 
 jobs:
   release:
