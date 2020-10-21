@@ -34,7 +34,9 @@ jobs:
         TWINE_USERNAME: "__token__"
         TWINE_PASSWORD: ${{ secrets.PYPI_TEST_TOKEN }}
       run: |
-        export TUUN_VERSION=${GITHUB_REF#"refs/tags/v"}
+        #export TUUN_VERSION=${GITHUB_REF#"refs/tags/v"}
+        export TUUN_VERSION=0.0.0
         HOME=$(pwd) python setup.py sdist bdist_wheel
         ls -ltr dist/
-        python -m twine upload dist/*
+        #python -m twine upload dist/*
+        python -m twine upload --repository-url=https://test.pypi.org/legacy/ dist/*
