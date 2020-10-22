@@ -6,9 +6,6 @@ name: Release PyPi Packages
 on:
   release:
     types: [created]
-  # TODO: Remove
-  pull_request:
-    branches: [master]
 
 jobs:
   release:
@@ -33,10 +30,10 @@ jobs:
       env:
         TWINE_USERNAME: "__token__"
         TWINE_PASSWORD: ${{ secrets.PYPI_TEST_TOKEN }}
+        # TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        #export TUUN_VERSION=${GITHUB_REF#"refs/tags/v"}
-        export TUUN_VERSION=0.0.0
+        export TUUN_VERSION=${GITHUB_REF#"refs/tags/v"}
         HOME=$(pwd) python setup.py sdist bdist_wheel
         ls -ltr dist/
-        #python -m twine upload dist/*
+        # python -m twine upload dist/*
         python -m twine upload --repository-url=https://test.pypi.org/legacy/ dist/*
