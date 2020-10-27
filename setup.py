@@ -45,6 +45,7 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3",
             "License :: Other/Proprietary License",
             "Operating System :: POSIX :: Linux",
+            "NNI Package :: tuner :: TuunTuner :: tuun.TuunTuner"
         ],
         packages=setuptools.find_packages(include=["tuun",
                                                    "tuun.*"]),
