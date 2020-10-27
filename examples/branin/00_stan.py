@@ -1,5 +1,5 @@
 from tuun.main import Tuun
-from examples.branin.branin import branin
+from branin import branin
 
 config = {
     'seed': 12,
