@@ -151,9 +151,20 @@ class Tuun:
             if dt == 'list':
                 pao_config_list.append({'name': 'default'})
             elif dt == 'real':
-                pao_config_list.append(
+                if self.config.acqoptimizer_config['name'] == 'neldermead':
+                    pao_config_list.append(
+                        {
+                            'name': 'neldermead',
+                            'rand_every': 10,
+                            'max_iter': 200,
+                            'init_str': 'bsf',
+                            'jitter': False
+                        }
+                    )
+                else:
+                    pao_config_list.append(
                         {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': False}
-                )
+                    )
 
         self.config.acqoptimizer_config = {
             'name': 'product',
