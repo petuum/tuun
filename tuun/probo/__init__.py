@@ -34,6 +34,12 @@ try:
 except:
     pass
 
+# Pyro models
+try:
+    from .models import PyroBnn
+except:
+    pass
+
 
 __all__ = [
     'AcqFunction',

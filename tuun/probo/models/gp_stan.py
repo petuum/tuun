@@ -47,6 +47,7 @@ class StanGp:
         self.params.niter = getattr(params, 'niter', 70)
         self.params.kernel = getattr(params, 'kernel', kern_exp_quad)
         self.params.trans_x = getattr(params, 'trans_x', False)
+        self.params.print_warnings = getattr(params, 'print_warnings', False)
 
     def set_verbose(self, verbose):
         """Set verbose options."""
@@ -182,7 +183,7 @@ class StanGp:
             try:
                 stanout = run_stan_optimizing('LBFGS')
             except RuntimeError:
-                if self.verbose:
+                if self.params.print_warnings:
                     print(
                         '\t*Stan LBFGS optimizer failed. Running Newton '
                         + 'optimizer instead.'
@@ -401,4 +402,7 @@ class StanGp:
 
     def print_str(self):
         """Print a description string."""
-        print('*StanGp with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'StanGp with params={self.params}'

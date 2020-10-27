@@ -14,7 +14,7 @@ def get_model(recompile=False, print_status=True):
 
     model_str = 'gp_distmat'
 
-    base_path =  pathlib.Path(__file__).parent
+    base_path = pathlib.Path(__file__).parent
     relative_path_to_model = 'model_pkls/' + model_str + '.pkl'
     model_path = str((base_path / relative_path_to_model).resolve())
 
@@ -25,12 +25,12 @@ def get_model(recompile=False, print_status=True):
         with open(model_path, 'wb') as f:
             pickle.dump(model, f)
         if print_status:
-            print('*Time taken to compile = ' + str(buildtime) + ' seconds.\n-----')
-            print('*Stan model saved in file ' + model_path + '.\n-----')
+            print('*[INFO] Time taken to compile = ' + str(buildtime) + ' seconds.')
+            print('*[INFO] Stan model saved in file ' + model_path)
     else:
         model = pickle.load(open(model_path, 'rb'))
         if print_status:
-            print('*Stan model loaded from file {}'.format(model_path))
+            print('*[INFO] Stan model loaded from file {}'.format(model_path))
     return model
 
 

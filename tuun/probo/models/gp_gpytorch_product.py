@@ -30,6 +30,5 @@ class GpytorchProductGp(GpytorchGp):
 
         return xin_list_trans
 
-    def print_str(self):
-        """Print a description string."""
-        print('*GpytorchProductGp with params={}'.format(self.params))
+    def __str__(self):
+        return f'GpytorchProductGp with params={self.params}'

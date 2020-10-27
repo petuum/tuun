@@ -75,7 +75,9 @@ class ProductDomain:
 
     def _print_str(self):
         """Print a description string."""
-        print('*ProductDomain with domain_list:')
+        print('*[INFO] ' + str(self) + ' and domain_list:')
         for idx, domain in enumerate(self.domain_list):
-            print('   {}: '.format(idx), end='')
-            domain._print_str()
+            print(f'*[INFO] {idx}: {domain}')
+
+    def __str__(self):
+        return f'ProductDomain with params={self.params}'

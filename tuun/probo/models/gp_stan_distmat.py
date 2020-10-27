@@ -33,6 +33,7 @@ class StanDistmatGp(StanGp):
         self.params.sigma = getattr(params, 'sigma', 1e-5)
         self.params.niter = getattr(params, 'niter', 70)
         self.params.trans_x = getattr(params, 'trans_x', False)
+        self.params.print_warnings = getattr(params, 'print_warnings', False)
         self.params.domain_spec = getattr(params, 'domain_spec', 'real')
         distmat_function = getattr(
             params,
@@ -143,6 +144,5 @@ class StanDistmatGp(StanGp):
                 'distmat': self.params.distmat_function(self.data.x, self.data.x),
             }
 
-    def print_str(self):
-        """Print a description string."""
-        print('*StanDistmatGp with params={}'.format(self.params))
+    def __str__(self):
+        return f'StanDistmatGp with params={self.params}'

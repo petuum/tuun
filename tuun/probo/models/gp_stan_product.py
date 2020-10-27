@@ -30,6 +30,5 @@ class StanProductGp(StanGp):
 
         return xin_list_trans
 
-    def print_str(self):
-        """Print a description string."""
-        print('*StanProductGp with params={}'.format(self.params))
+    def __str__(self):
+        return f'StanProductGp with params={self.params}'

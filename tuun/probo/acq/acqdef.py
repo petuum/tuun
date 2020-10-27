@@ -223,7 +223,9 @@ class Acquisitioner:
         youts = np.array(ypred_samp).flatten()
         return np.mean(youts)
 
-    # Utilities
     def _print_str(self):
         """Print a description string."""
-        print('*Acquisitioner with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'Acquisitioner with params={self.params}'

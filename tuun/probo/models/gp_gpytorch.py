@@ -4,6 +4,7 @@ Classes for GP models with GpyTorch.
 
 from argparse import Namespace
 import copy
+import warnings
 import numpy as np
 import gpytorch
 import torch
@@ -141,7 +142,9 @@ class GpytorchGp:
         # Make predictions by feeding model through self.likelihood
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
             test_x = torch.from_numpy(np.array(x_list))
-            observed_pred = self.likelihood(self.model(test_x))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                observed_pred = self.likelihood(self.model(test_x))
 
             try:
                 samp_torch = observed_pred.sample(sample_shape=torch.Size((nsamp,)))
@@ -158,7 +161,10 @@ class GpytorchGp:
 
     def print_str(self):
         """Print a description string."""
-        print('*GpytorchGp with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'GpytorchGp with params={self.params}'
 
 
 class ExactGPModel(gpytorch.models.ExactGP):

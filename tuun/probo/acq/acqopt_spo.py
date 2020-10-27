@@ -225,7 +225,10 @@ class SpoAcqOptimizer(AcqOptimizer):
 
     def print_str(self):
         """Print a description string."""
-        print('*SpoAcqOptimizer with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'SpoAcqOptimizer with params={self.params}'
 
 
 class CobylaAcqOptimizer(SpoAcqOptimizer):
@@ -246,12 +249,8 @@ class CobylaAcqOptimizer(SpoAcqOptimizer):
             },
         )
 
-    def print_str(self):
-        """Print a description string."""
-        print(str(self))
-
     def __str__(self):
-        return '*CobylaAcqOptimizer with params = {}'.format(self.params)
+        return f'CobylaAcqOptimizer with params={self.params}'
 
 
 class NelderMeadAcqOptimizer(SpoAcqOptimizer):
@@ -266,9 +265,5 @@ class NelderMeadAcqOptimizer(SpoAcqOptimizer):
             options={'adaptive': True, 'maxiter': self.params.max_iter},
         )
 
-    def print_str(self):
-        """Print a description string."""
-        print(str(self))
-
     def __str__(self):
-        return '*NelderMeadAcqOptimizer with params = {}'.format(self.params)
+        return f'NelderMeadAcqOptimizer with params={self.params}'

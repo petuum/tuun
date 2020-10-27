@@ -139,10 +139,7 @@ def stable_cholesky(mmat, make_psd=True, verbose=False):
                         )
                 diag_noise_power += 1
             if diag_noise_power >= 5:
-                print(
-                    '\t*stable_cholesky failed: added diag noise '
-                    '= %e' % (diag_noise)
-                )
+                print('\t*stable_cholesky failed: added diag noise = %e' % (diag_noise))
     return lmat
 
 

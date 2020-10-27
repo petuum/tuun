@@ -205,4 +205,7 @@ class AcqOptimizer:
 
     def print_str(self):
         """Print a description string."""
-        print('*AcqOptimizer with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'AcqOptimizer with params={self.params}'

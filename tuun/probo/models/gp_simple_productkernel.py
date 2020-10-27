@@ -254,5 +254,8 @@ class SimpleProductKernelGp:
         return list(np.stack(ppred_list).T)
 
     def print_str(self):
-        """Print a description string"""
-        print('*SimpleProductKernelGp with params={}'.format(self.params))
+        """Print a description string."""
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'SimpleProductKernelGp with params={self.params}'

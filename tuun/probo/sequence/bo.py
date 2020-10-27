@@ -113,7 +113,7 @@ class SimpleBo:
         self.verbose = verbose
         if self.verbose:
             self.print_str()
-            print('*Initialized with {} observations'.format(self.n_data_init))
+            print(f'*[INFO] SimpleBo initialized with {self.n_data_init} observations')
 
     def run(self):
         """Run Bayesian optimization."""
@@ -168,7 +168,7 @@ class SimpleBo:
     def print_starting_info(self):
         """Print information before optimiztion run."""
         print(
-            '[KEY] i: iteration, x: design, y: objective, min_y: minimum '
+            '*[KEY] i: iteration, x: design, y: objective, min_y: minimum '
             + 'objective so far (* indicates a new min_y)'
         )
 
@@ -215,4 +215,7 @@ class SimpleBo:
 
     def print_str(self):
         """Print a description string."""
-        print('*SimpleBo with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'SimpleBo with params={self.params}'

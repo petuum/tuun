@@ -64,4 +64,7 @@ class RealDomain:
 
     def _print_str(self):
         """Print a description string."""
-        print('*RealDomain with params = {}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'RealDomain with params={self.params}'

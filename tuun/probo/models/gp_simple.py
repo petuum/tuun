@@ -217,5 +217,8 @@ class SimpleGp:
         return list(np.stack(ppred_list).T)
 
     def print_str(self):
-        """Print a description string"""
-        print('*SimpleGp with params={}'.format(self.params))
+        """Print a description string."""
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'SimpleGp with params={self.params}'

@@ -76,4 +76,7 @@ class ListDomain:
 
     def _print_str(self):
         """Print a description string."""
-        print('*ListDomain with params = {}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'ListDomain with params={self.params}'

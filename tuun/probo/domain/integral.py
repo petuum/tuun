@@ -68,4 +68,7 @@ class IntegralDomain:
 
     def _print_str(self):
         """Print a description string."""
-        print('*IntegralDomain with params = {}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'IntegralDomain with params={self.params}'

@@ -191,4 +191,7 @@ class AcqOptDesigner:
 
     def print_str(self):
         """Print a description string."""
-        print('*AcqOptDesigner with params={}'.format(self.params))
+        print('*[INFO] ' + str(self))
+
+    def __str__(self):
+        return f'AcqOptDesigner with params={self.params}'

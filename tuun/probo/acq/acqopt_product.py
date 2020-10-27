@@ -194,10 +194,9 @@ class ProductAcqOptimizer:
 
     def print_str(self):
         """Print a description string."""
-        print(
-            ('*ProductAcqOptimizer with params = {} ' + 'and ao_list:').format(
-                self.params
-            )
-        )
+        print('*[INFO] ' + str(self) + ' and ao_list:')
         for idx, ao in enumerate(self.ao_list):
-            print('   {}: {}'.format(idx, ao))
+            print(f'*[INFO] {idx}: {ao}')
+
+    def __str__(self):
+        return f'ProductAcqOptimizer with params = {self.params}'
