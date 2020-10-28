@@ -14,7 +14,7 @@ config = {
         'name': 'product',
         'n_iter_bcd': 3,
         #'rand_every': 4,
-        'n_init_rs': 3,
+        'n_init_rs': 10,
         'pao_config_list': [
             {'name': 'default'},
             {'name': 'default'},
