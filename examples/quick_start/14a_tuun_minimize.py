@@ -18,7 +18,7 @@ def f(x_list):
     str_map = {'a': [4], 'b': [5], 'c': [0], 'd': [0.7], 'e': [-0.7]}
     f_s = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
     if len(x_list) == 1:
-        return f_s(x_list[0])
+        return f_s(x_list)
     else:
         return f_s(x_list[0]) + f_s(str_map[x_list[1]])
 
