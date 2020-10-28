@@ -25,55 +25,22 @@ class Tuun:
         config = Namespace(**config_dict)
         self.config = Namespace()
 
-        # Tuun parameters
+        # Set Tuun parameters
         self._set_seed(config=config)
         self.config.print_x_str_len = getattr(config, 'print_x_str_len', 30)
         self.config.normalize_real = getattr(config, 'normalize_real', False)
 
+        # Set backend
         self.config.backend = getattr(config, 'backend', 'probo')
         assert self.config.backend in ['probo', 'dragonfly']
 
-        # ProBO specific
+        # Set ProBO specific
         if self.config.backend == 'probo':
+            self._configure_tuun_for_probo(config)
 
-            domain_config = getattr(config, 'domain_config', None)
-            if domain_config is None:
-                domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
-            self.config.domain_config = domain_config
-
-            model_config = getattr(config, 'model_config', None)
-            if model_config is None:
-                model_config = {'name': 'gpytorchgp'}
-            self.config.model_config = model_config
-
-            acqfunction_config = getattr(config, 'acqfunction_config', None)
-            if acqfunction_config is None:
-                acqfunction_config = {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500}
-            self.config.acqfunction_config = acqfunction_config
-
-            acqoptimizer_config = getattr(config, 'acqoptimizer_config', None)
-            if acqoptimizer_config is None:
-                acqoptimizer_config = {'name': 'default'}
-            self.config.acqoptimizer_config = acqoptimizer_config
-
-            probo_config = getattr(config, 'probo_config', None)
-            self.config.probo_config = probo_config
-
-        # Dragonfly specific
+        # Set Dragonfly specific
         if self.config.backend == 'dragonfly':
-
-            domain_config = getattr(config, 'domain_config', None)
-            if domain_config is None:
-                domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
-            self.config.domain_config = domain_config
-
-            opt_config = getattr(config, 'opt_config', None)
-            if opt_config is None:
-                opt_config = {'name': domain_config['name']}
-            self.config.opt_config = opt_config
-
-            dragonfly_config = getattr(config, 'dragonfly_config', None)
-            self.config.dragonfly_config = dragonfly_config
+            self._configure_tuun_for_dragonfly(config)
 
     def _set_seed(self, config=None, seed=None):
         """Set self.config.seed and numpy random seed."""
@@ -86,6 +53,46 @@ class Tuun:
             self.config.seed = np.random.randint(13337)
 
         np.random.seed(self.config.seed)
+
+    def _configure_tuun_for_probo(self, config):
+        """Configure Tuun for Probo backend."""
+        domain_config = getattr(config, 'domain_config', None)
+        if domain_config is None:
+            domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
+        self.config.domain_config = domain_config
+
+        model_config = getattr(config, 'model_config', None)
+        if model_config is None:
+            model_config = {'name': 'simplegp'}
+        self.config.model_config = model_config
+
+        acqfunction_config = getattr(config, 'acqfunction_config', None)
+        if acqfunction_config is None:
+            acqfunction_config = {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500}
+        self.config.acqfunction_config = acqfunction_config
+
+        acqoptimizer_config = getattr(config, 'acqoptimizer_config', None)
+        if acqoptimizer_config is None:
+            acqoptimizer_config = {'name': 'default'}
+        self.config.acqoptimizer_config = acqoptimizer_config
+
+        probo_config = getattr(config, 'probo_config', None)
+        self.config.probo_config = probo_config
+
+    def _configure_tuun_for_dragonfly(self, config):
+        """Configure Tuun for Dragonfly backend."""
+        domain_config = getattr(config, 'domain_config', None)
+        if domain_config is None:
+            domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
+        self.config.domain_config = domain_config
+
+        opt_config = getattr(config, 'opt_config', None)
+        if opt_config is None:
+            opt_config = {'name': domain_config['name']}
+        self.config.opt_config = opt_config
+
+        dragonfly_config = getattr(config, 'dragonfly_config', None)
+        self.config.dragonfly_config = dragonfly_config
 
     def _set_backend(self):
         """Set Tuun backend tuning system."""
@@ -106,9 +113,9 @@ class Tuun:
 
     def set_config_from_list(self, search_space_list):
         """
-        Set the Tuun search space given a search_space_list, a list of tuples each
-        containing a domain type and a domain bounds specification.  This method will
-        overwrite self.config and self.backend.
+        Automatically configure the Tuun search space given a search_space_list (a list
+        of tuples each containing a domain type and a domain bounds specification).
+        This method will overwrite of self.config and self.backend.
 
         Parameters
         ----------
@@ -123,7 +130,23 @@ class Tuun:
         # Set backend
         self.config.backend = 'probo'
 
-        # Set default model_config
+        # Set model_config
+        self._set_model_config_from_list(domain_types)
+
+        # Set acqoptimizer_config
+        self._set_acqoptimizer_config_from_list(domain_types)
+
+        # Set domain_config
+        self._set_domain_config_from_list(search_space_list)
+
+        # Set self.backend given the above updates
+        self._set_backend()
+
+    def _set_model_config_from_list(self, domain_types):
+        """
+        Helper function for self.set_config_from_list to update self.config.model_config
+        attribute.
+        """
         if self.config.model_config.get('name') == 'standistmatgp':
             self.config.model_config = {
                 'name': 'standistmatgp',
@@ -145,49 +168,104 @@ class Tuun:
                 'domain_spec': domain_types,
             }
 
-        # Set default acqoptimizer_config
-        pao_config_list = []
-        for dt in domain_types:
-            if dt == 'list':
-                pao_config_list.append({'name': 'default'})
-            elif dt == 'real':
-                if self.config.acqoptimizer_config['name'] == 'neldermead':
-                    pao_config_list.append(
-                        {
-                            'name': 'neldermead',
-                            'rand_every': 10,
-                            'max_iter': 200,
-                            'init_str': 'bsf',
-                            'jitter': False
-                        }
-                    )
-                else:
-                    pao_config_list.append(
-                        {'name': 'cobyla', 'init_str': 'init_opt', 'jitter': False}
-                    )
+    def _set_acqoptimizer_config_from_list(self, domain_types):
+        """
+        Helper function for self.set_config_from_list to update
+        self.config.acqoptimizer_config attribute.
+        """
+        n_init_rs = self.config.acqfunction_config.get('n_init_rs', 5)
 
-        self.config.acqoptimizer_config = {
-            'name': 'product',
-            'n_iter_bcd': 3,
-            'n_init_rs': 5,
-            'pao_config_list': pao_config_list,
-        }
+        if len(domain_types) == 1:
+            dt = domain_types[0]
+            ao_config = self._get_acqoptimizer_config_from_domain_type(dt)
+            self.config.acqoptimizer_config = ao_config
+        else:
+            pao_config_list = []
+            for dt in domain_types:
+                ao_config = self._get_acqoptimizer_config_from_domain_type(dt, True)
+                pao_config_list.append(ao_config)
+            self.config.acqoptimizer_config = {
+                'name': 'product',
+                'n_iter_bcd': 3,
+                'n_init_rs': n_init_rs,
+                'pao_config_list': pao_config_list,
+            }
 
-        # Set default domain_config
-        dom_config_list = []
-        for i, dt in enumerate(domain_types):
-            bounds_spec = search_space_list[i][1]
-            if dt == 'list':
-                dom_config_list.append({'name': dt, 'domain_list': bounds_spec})
-            elif dt == 'real':
-                dom_config_list.append({'name': dt, 'min_max': bounds_spec})
+    def _get_acqoptimizer_config_from_domain_type(self, dt, in_product=False):
+        """
+        Helper function for self.set_acqoptimizer_config_from_list which returns
+        acqoptimizer config for a single domain type dt.
+        """
+        assert dt in ['real', 'list']
+        jitter = self.config.acqoptimizer_config.get('jitter', False)
+        n_init_rs = self.config.acqoptimizer_config.get('n_init_rs', 5)
+        acqoptimizer_name = self.config.acqoptimizer_config.get('name')
 
-        self.config.domain_config = {
-            'name': 'product', 'dom_config_list': dom_config_list,
-        }
+        if dt == 'real':
+            if acqoptimizer_name == 'neldermead':
+                ao_config = {
+                    'name': 'neldermead',
+                    'rand_every': 10,
+                    'max_iter': 200,
+                    'init_str': 'bsf',
+                    'jitter': jitter,
+                    'n_init_rs': n_init_rs,
+                }
+            else:
+                ao_config = {
+                    'name': 'cobyla',
+                    'init_str': 'bsf',
+                    'rand_every': 4,
+                    'jitter': jitter,
+                    'n_init_rs': n_init_rs,
+                }
 
-        # Set self.backend with above settings
-        self._set_backend()
+            if in_product:
+                ao_config['init_str'] = 'init_opt'
+                ao_config['rand_every'] = None
+                ao_config['jitter'] = False
+                ao_config['n_init_rs'] = 0
+
+        elif dt == 'list':
+            ao_config = {'name': 'default'}
+
+        return ao_config
+
+    def _set_domain_config_from_list(self, search_space_list):
+        """
+        Helper function for self.set_config_from_list to update
+        self.config.domain_config attribute.
+        """
+        domain_types = [ss[0] for ss in search_space_list]
+        if len(domain_types) == 1:
+            dt = domain_types[0]
+            bounds_spec = search_space_list[0][1]
+            dom_config = self._get_domain_config_from_domain_type(dt, bounds_spec)
+            self.config.domain_config = dom_config
+        else:
+            dom_config_list = []
+            for i, dt in enumerate(domain_types):
+                bounds_spec = search_space_list[i][1]
+                dom_config = self._get_domain_config_from_domain_type(dt, bounds_spec)
+                dom_config_list.append(dom_config)
+
+            self.config.domain_config = {
+                'name': 'product', 'dom_config_list': dom_config_list,
+            }
+
+    def _get_domain_config_from_domain_type(self, dt, bounds_spec):
+        """
+        Helper function for self.set_domain_config_from_list which returns
+        domain config for a single domain type dt with given bounds_spec.
+        """
+        assert dt in ['real', 'list']
+
+        if dt == 'real':
+            dom_config = {'name': dt, 'min_max': bounds_spec}
+        elif dt == 'list':
+            dom_config = {'name': dt, 'domain_list': bounds_spec}
+
+        return dom_config
 
     def _transform_domain_config(self):
         """Transform domain."""
