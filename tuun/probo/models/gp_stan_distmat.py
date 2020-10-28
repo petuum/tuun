@@ -46,12 +46,17 @@ class StanDistmatGp(StanGp):
     def get_default_distmat_function(self, domain_spec):
         """Return a default distmat_function."""
 
+        # Treat list of one type as single (non-product) domain
+        if type(domain_spec) is list:
+            if len(domain_spec) == 1:
+                domain_spec = domain_spec[0]
+
+        # Single (non-product) domain
         if type(domain_spec) is not list:
-            # Single (non-product) domain
             return self.get_default_distmat_function_single(domain_spec)
 
+        # Product domain
         elif type(domain_spec) is list:
-            # Product domain
             distmat_function_list = []
             for i, domain_spec_single in enumerate(domain_spec):
                 distfn = self.get_default_distmat_function_single(domain_spec_single)

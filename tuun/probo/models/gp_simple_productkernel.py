@@ -50,20 +50,26 @@ class SimpleProductKernelGp:
 
     def set_kernel(self):
         """Set self.params.kernel, the GP kernel."""
+        domain_spec = self.params.domain_spec
 
+        # Treat list of one type as single (non-product) domain
+        if type(domain_spec) is list:
+            if len(domain_spec) == 1:
+                domain_spec = domain_spec[0]
+
+        # Already specified kernel in self.params
         if self.params.kernel:
-            # Already specified kernel in self.params
             pass
 
-        elif type(self.params.domain_spec) is not list:
-            # Single (non-product) domain
-            assert self.params.domain_spec in ['real', 'list']
-            self.params.kernel = self.get_default_kernel(self.params.domain_spec)
+        # Single (non-product) domain
+        elif type(domain_spec) is not list:
+            assert domain_spec in ['real', 'list']
+            self.params.kernel = self.get_default_kernel(domain_spec)
 
-        elif type(self.params.domain_spec) is list:
-            # Product domain
+        # Product domain
+        elif type(domain_spec) is list:
             kernel_list = []
-            for i, domain_spec_single in enumerate(self.params.domain_spec):
+            for i, domain_spec_single in enumerate(domain_spec):
                 assert domain_spec_single in ['real', 'list']
                 default_kernel = self.get_default_kernel(domain_spec_single)
                 kernel = self.convert_default_kernel_for_product(default_kernel, i)
