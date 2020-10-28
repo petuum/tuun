@@ -27,7 +27,7 @@ class Tuun:
 
         # Tuun parameters
         self._set_seed(config=config)
-        self.config.print_x_str_len = getattr(config, 'print_x_str_len', 38)
+        self.config.print_x_str_len = getattr(config, 'print_x_str_len', 30)
         self.config.normalize_real = getattr(config, 'normalize_real', False)
 
         self.config.backend = getattr(config, 'backend', 'probo')
@@ -333,6 +333,8 @@ class Tuun:
             # Minimize function via calls to self.suggest_to_minimize()
             n_data_init = 0 if data is None else len(data.x)
 
+            # The BO Loop
+            self._print_starting_info()
             for i in range(n_iter):
                 x = self.suggest_to_minimize(data=data, verbose=verbose)
                 y = self._format_function_output(f(x))
@@ -372,18 +374,32 @@ class Tuun:
         y_out = float(y_out)
         return y_out
 
+    def _print_starting_info(self):
+        """Print information before optimiztion run."""
+        print(
+            '*[KEY] i: iteration, x: design, y: objective, min_y: minimum '
+            + 'objective so far (* indicates a new min_y)'
+        )
+
     def _print_iter_info(self, iter_idx, data):
         """Print information for a given iteration of Bayesian optimization."""
-        x_last = data.x[-1]
-        x_str = self._get_print_x_str(x_last)
+        x_str = self._get_print_x_str(data.x[-1])
         y = data.y[-1]
-        bsf = np.min(data.y)
+        min_y = np.min(data.y)
+
+        if len(data.y) > 1:
+            ast_str = '*' if min_y != np.min(data.y[:-1]) else ''
+        else:
+            ast_str = '*'
+
         print(
-            'i: {},    x: {} \ty: {:.4f},\tBSF: {:.4f}'.format(iter_idx, x_str, y, bsf)
+            'i: {},    x: {} \ty: {:.4f},\tmin_y: {:.4f} {}'.format(
+                iter_idx, x_str, y, min_y, ast_str
+            )
         )
 
     def _get_print_x_str(self, x):
-        """Return formatted string for x to print at each iter."""
+        """Return formatted x string to print at each iter."""
         x_str = str(x).ljust(self.config.print_x_str_len)
         x_str = x_str[: self.config.print_x_str_len] + '..'
         return x_str
