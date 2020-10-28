@@ -5,7 +5,6 @@ config = {
     'seed': 11,
     'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
     'model_config': {'name': 'standistmatgp'},
-    'normalize_real': True,
 }
 tu = Tuun(config)
 
