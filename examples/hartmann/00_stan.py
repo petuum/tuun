@@ -13,4 +13,4 @@ tu.set_config_from_list(search_space_list)
 
 f = hartmann6
 
-result = tu.minimize_function(f, 50)
+result = tu.minimize_function(f, 60)
