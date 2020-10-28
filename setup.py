@@ -37,9 +37,9 @@ if __name__ == "__main__":
     setuptools.setup(
         name="tuun",
         version=os.getenv("TUUN_VERSION", "0.0.0"),
-        author="Petuum Inc. & The Tuun Authors",
+        author="The Tuun Authors",
         author_email="willie.neiswanger@petuum.com",
-        description="Hyper-parameter tuning",
+        description="Hyperparameter tuning via uncertainty modeling",
         url="https://github.com/petuum/tuun-dev",
         classifiers=[
             "Programming Language :: Python :: 3",
