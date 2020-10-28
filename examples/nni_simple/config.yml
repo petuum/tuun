@@ -16,9 +16,7 @@ useAnnotation: false
     ##choice: maximize, minimize
     #optimize_mode: maximize
 tuner:
-  codeDir: /home/ubuntu/proj/tuun-dev/tuun
-  classFileName: nni_tuner.py
-  className: TuunTuner
+  builtinTunerName: TuunTuner
   # Any parameter need to pass to your tuner class __init__ constructor
   # can be specified in this optional classArgs field, for example
   classArgs:
