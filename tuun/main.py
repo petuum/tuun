@@ -10,7 +10,7 @@ from .backend import ProboBackend, DragonflyBackend
 class Tuun:
     """Main interface to Tuun."""
 
-    def __init__(self, config_dict):
+    def __init__(self, config_dict={}):
         """
         Parameters
         ----------
@@ -124,6 +124,13 @@ class Tuun:
             optimization block which can have a unique domain type. Each element tuple
             consists of (domain type, domain bounds specification).
         """
+        assert type(search_space_list) in [list, tuple]
+
+        if type(search_space_list) is list:
+            assert all([type(ss) is tuple for ss in search_space_list])
+        elif type(search_space_list) is tuple:
+            search_space_list = [search_space_list]
+
         domain_types = [ss[0] for ss in search_space_list]
         assert all([dt in ['real', 'list'] for dt in domain_types])
 
