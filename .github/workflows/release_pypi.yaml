@@ -1,0 +1,39 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Release PyPi Packages
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git wget unzip
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+        wget https://github.com/protocolbuffers/protobuf/releases/download/v3.11.0/protoc-3.11.0-linux-x86_64.zip
+        unzip protoc-3.11.0-linux-x86_64.zip
+    - name: Build and push pip package
+      env:
+        TWINE_USERNAME: "__token__"
+        TWINE_PASSWORD: ${{ secrets.PYPI_TEST_TOKEN }} # TODO: remove
+        # TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: |
+        export TUUN_VERSION=${GITHUB_REF#"refs/tags/v"}
+        HOME=$(pwd) python setup.py sdist bdist_wheel
+        ls -ltr dist/
+        # python -m twine upload dist/*
+        python -m twine upload --repository-url=https://test.pypi.org/legacy/ dist/* # TODO: remove
