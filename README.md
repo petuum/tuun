@@ -1,4 +1,4 @@
-![tuun](docs/images/tuun_header.png)
+<p align="center"><img src="docs/images/tuun_logo.png" width=280 /></p>
 
 **Tuun** is a toolkit for efficient hyperparameter tuning via uncertainty
 modeling, with a focus on flexible model choice, scalability, and use in
@@ -21,7 +21,23 @@ $ pip install -r requirements/requirements_dev.txt
 
 ## Quick Start
 Here is a minimal working example, which uses Tuun to optimize a function via Bayesian
-optimization using a Gaussian process (GP) model.
+optimization.
+
+```python
+from tuun.main import Tuun
+
+tu = Tuun()
+
+search_space = ('real', [[-5, 5]])
+tu.set_config_from_list(search_space)
+
+f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
+result = tu.minimize_function(f, 20)
+```
+This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.
+
+Tuun also allows for fine-grained configuration of individual components and search
+spaces.
 
 ```python
 from tuun.main import Tuun
