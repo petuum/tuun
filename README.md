@@ -6,18 +6,17 @@ distributed settings.
 
 ## Installation
 
-Tuun requires Python 3.6+. To install Python dependencies, run:
-```
-$ pip install -r requirements/requirements.txt
-```
-
-Certain models in [`tuun/models/`](tuun/models/) may require [additional
-installation](tuun/models/README.md).
-
-To install all dependencies for development, run:
+Tuun requires Python 3.6+. To install all dependencies for development, run:
 ```
 $ pip install -r requirements/requirements_dev.txt
 ```
+
+For the full functionality of Tuun, a [Stan](https://mc-stan.org/) model must also be
+compiled (this takes roughly 1 minute) by running:
+```
+$ python tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
+```
+
 
 ## Quick Start
 Here is a minimal working example, which uses Tuun to optimize a function via Bayesian
