@@ -26,3 +26,6 @@ jobs:
     - name: Build and install pip package
       run: |
         pip install -e .
+        rm -rf tuun.egg-info
+        export SUBMIT_TO_PYPI=1
+        pip install -e .

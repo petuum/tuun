@@ -34,6 +34,15 @@ def read_requirements(root, file_path):
 
 
 if __name__ == "__main__":
+    submit_to_pypi = int(os.getenv("SUBMIT_TO_PYPI", 0))
+    classifiers = [
+        "Programming Language :: Python :: 3",
+        "License :: Other/Proprietary License",
+        "Operating System :: POSIX :: Linux",
+        ]
+    if not submit_to_pypi:
+        classifiers += [
+            "NNI Package :: tuner :: TuunTuner :: tuun.TuunTuner"]
     setuptools.setup(
         name="tuun",
         version=os.getenv("TUUN_VERSION", "0.0.0"),
@@ -41,12 +50,7 @@ if __name__ == "__main__":
         author_email="willie.neiswanger@petuum.com",
         description="Hyperparameter tuning via uncertainty modeling",
         url="https://github.com/petuum/tuun-dev",
-        classifiers=[
-            "Programming Language :: Python :: 3",
-            "License :: Other/Proprietary License",
-            "Operating System :: POSIX :: Linux",
-            "NNI Package :: tuner :: TuunTuner :: tuun.TuunTuner"
-        ],
+        classifiers=classifiers,
         packages=setuptools.find_packages(include=["tuun",
                                                    "tuun.*"]),
         python_requires='>=3.6',
