@@ -34,7 +34,7 @@ def read_requirements(root, file_path):
 
 
 if __name__ == "__main__":
-    submit_to_pypi = int(os.getenv("SUBMIT_TO_PYPI", False))
+    submit_to_pypi = int(os.getenv("SUBMIT_TO_PYPI", 0))
     classifiers = [
         "Programming Language :: Python :: 3",
         "License :: Other/Proprietary License",
