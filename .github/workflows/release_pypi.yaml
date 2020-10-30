@@ -33,6 +33,7 @@ jobs:
         # TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
         export TUUN_VERSION=${GITHUB_REF#"refs/tags/v"}
+        export SUBMIT_TO_PYPI=1
         HOME=$(pwd) python setup.py sdist bdist_wheel
         ls -ltr dist/
         # python -m twine upload dist/*
