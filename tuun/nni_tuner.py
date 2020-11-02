@@ -70,7 +70,7 @@ class TuunTuner(Tuner):
     Tuun as a custom Tuner for NNI.
     """
 
-    def __init__(self, tuun_config, initial_data=None):
+    def __init__(self, tuun_config, optimize_mode="maximize", initial_data=None):
         """
         Parameters
         ----------
@@ -80,12 +80,12 @@ class TuunTuner(Tuner):
             Dictionary with keys x (list) and y (1D numpy ndarray).
         """
         self._set_tuun(tuun_config)
-        self._set_optimize_mode(tuun_config)
         self._set_data(initial_data)
+        assert isinstance(tuun_config, dict)
+        self._optimize_mode = OptimizeMode(optimize_mode)
 
     def _set_optimize_mode(self, tuun_config):
         """Configure the mode to choose to minimize or maximize."""
-        assert isinstance(tuun_config, dict)
         self._optimize_mode = tuun_config.get('optimize_mode', 'min')
         print('optimize_mode:', self._optimize_mode)
         assert self._optimize_mode in ['min', 'max']
@@ -149,7 +149,7 @@ class TuunTuner(Tuner):
         dict
             A set of (hyper-)parameters suggested by Tuun.
         """
-        if self._optimize_mode == 'min':
+        if self._optimize_mode == OptimizeMode.Minimize:
             suggestion = self.tuun.suggest_to_minimize(self.data)
         else:  # self._optimize_mode is guaranteed as 'min' or 'max'.
             suggestion = self.tuun.suggest_to_maximize(self.data)
