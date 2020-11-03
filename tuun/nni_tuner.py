@@ -120,6 +120,7 @@ class TuunTuner(Tuner):
         search_space : dict
             Information to define a search space.
         """
+        self.parameter_keys = list(search_space.keys())
         dom_config = json2space(search_space)
 
         # Merge multiple min_max to a multi-dimension list
@@ -180,7 +181,7 @@ class TuunTuner(Tuner):
             raise TypeError('value must be a Number or dict with "default" key')
 
         # Define x
-        x = parameters['suggestion']
+        x = list(parameters.values())
 
         # Update self.data
         self.data.x.append(x)
@@ -190,6 +191,5 @@ class TuunTuner(Tuner):
         """Parse suggestion from Tuun into dict for NNI."""
 
         # Keep things simple for now
-        parsed_dict = {'suggestion': suggestion}
-
+        parsed_dict = dict(zip(self.parameter_keys, suggestion))
         return parsed_dict
