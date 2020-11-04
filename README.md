@@ -60,3 +60,12 @@ f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)
 ```
 This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.
+
+
+
+## Examples
+<p align="center">
+    <img src="docs/images/hartmann6.png" alt="Hartmann 6 Dimensions" width="48%">
+    &nbsp; &nbsp;
+    <img src="docs/images/branin40.png" alt="Branin 40 Dimensions" width="48%">
+</p>
