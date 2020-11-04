@@ -25,7 +25,7 @@ tuner:
     tuun_config: {
         'seed': 11,
         'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
-        'acqoptimizer_config': {'name': 'neldermead', 'n_init_rs': 10},
+        'acqoptimizer_config': {'name': 'neldermead', 'n_init_rs': 5},
         'model_config': {'name': 'standistmatgp'},
     } 
 trial:
