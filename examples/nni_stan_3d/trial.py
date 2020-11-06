@@ -7,7 +7,7 @@ f = lambda x_list: f_s(x_list[1][0]) + f_s(x_list[1][1])
 x = nni.get_next_parameter()
 print('x = {}'.format(x))
 
-xin = x['suggestion']
+xin = list(x.values())
 print('xin = {}'.format(xin))
 
 print('querying function now')

@@ -13,7 +13,7 @@ f = lambda x: np.sum([branin(x[2 * i : 2 * i + 2]) for i in range(20)])
 x = nni.get_next_parameter()
 print('x = {}'.format(x))
 
-xin = x['suggestion']
+xin = list(x.values())
 print('xin = {}'.format(xin))
 
 print('querying function now')

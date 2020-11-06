@@ -22,6 +22,7 @@ tuner:
   # Any parameter need to pass to your tuner class __init__ constructor
   # can be specified in this optional classArgs field, for example
   classArgs:
+    optimize_mode: minimize
     tuun_config: {
         'backend': 'probo',
         #'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
