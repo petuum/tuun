@@ -10,10 +10,12 @@ The code for Tuun is `on github <https://github.com/petuum/tuun>`_.
 User Guide
 **********
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    installation
-..   quick_start
+   quick_start
+   search_space
+   nni
 ..   architecture
 ..   custom_models
 ..   custom_domains
