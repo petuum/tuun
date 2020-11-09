@@ -54,8 +54,7 @@ html_theme = 'sphinx_rtd_theme'
 # Register the theme as an extension to generate a sitemap.xml
 extensions.append("sphinx_rtd_theme")
 # logo
-#html_logo = '_static/img/logo.png'
-html_logo = 'images/tuun_logo.png'
+html_logo = 'images/tuun_logo_space.png'
 html_favicon = 'images/tuun_logo_only.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -65,7 +64,7 @@ html_favicon = 'images/tuun_logo_only.png'
 html_theme_options = {
     'style_nav_header_background': 'white',
     'display_version': True,
-    'logo_only': True,
+    'logo_only': False,
     'collapse_navigation': False,
 }
 
@@ -73,13 +72,6 @@ html_context = {
     'css_files': [
 	'_static/css/custom.css'
     ],
-}
-
-html_sidebars = {
-  '**': ['logo-text.html', 'globaltoc.html', 'searchbox.html']
-  #'**': ['logo-text.html', 'localtoc.html', 'searchbox.html']
-  #'**': ['logo-text.html', 'globaltoc.html', 'localtoc.html', 'searchbox.html']
-  #'**': ['globaltoc.html', 'searchbox.html']
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -95,4 +87,7 @@ html_static_path = ['_static']
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
 #
-# html_sidebars = {}
+html_sidebars = {
+  '**': ['logo-text.html', 'globaltoc.html', 'searchbox.html']
+  #'**': ['logo-text.html', 'globaltoc.html', 'localtoc.html', 'searchbox.html']
+}
