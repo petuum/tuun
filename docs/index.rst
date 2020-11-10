@@ -15,6 +15,7 @@ User Guide
    installation
    quick_start
    search_space
+   configure
    nni
 ..   architecture
 ..   custom_models
