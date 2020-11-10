@@ -17,12 +17,17 @@ continuous Euclidean space within :math:`[-5, 5]`), a function is defined, and T
 
   from tuun.main import Tuun
 
+  # instantiate Tuun
   tu = Tuun()
 
+  # set search space
   search_space = ('real', [[-5, 5]])
   tu.set_config_from_list(search_space)
 
+  # define function to optimize
   f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
+
+  # tune function over search space
   result = tu.minimize_function(f, 20)
 
 This should find a minima at roughly: :math:`x^* = -0.73`, :math:`f(x^*) = -0.32`.
@@ -40,6 +45,9 @@ spaces.
   from tuun.main import Tuun
 
   config = {
+      # configure tuning backend
+      'backend': 'probo',
+
       # configure model
       'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
 
@@ -69,13 +77,18 @@ initialize with a dataset of 3 function queries.
 
   from tuun.main import Tuun
 
+  # instantiate Tuun
   tu = Tuun()
 
+  # set search space
   search_space = ('real', [[-5, 5]])
   tu.set_config_from_list(search_space)
 
+  # define function to optimize
   f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 
+  # set initial dataset
   data = {'x': [[0.0], [1.0], [2.0]], 'y': [6.0, 3.0, 4.0]}
 
+  # tune function over search space
   result = tu.minimize_function(f, 20, data=data)
