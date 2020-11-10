@@ -19,21 +19,28 @@ $ python tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
 
 
 ## Quick Start
-Here is a minimal working example, which uses Tuun to optimize a function via Bayesian
-optimization.
+Here is a minimal working example, which uses Tuun to optimize a function over a
+one-dimensional Euclidean search space with bounds [-5, 5].
 
 ```python
 from tuun.main import Tuun
 
+# instantiate Tuun
 tu = Tuun()
 
+# set search space
 search_space = ('real', [[-5, 5]])
 tu.set_config_from_list(search_space)
 
+# define function to optimize
 f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
+
+# tune function over search space
 result = tu.minimize_function(f, 20)
 ```
-This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.
+This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.  See [this docs
+page](docs/search_space.rst) for more details on defining different search spaces for
+Tuun.
 
 Tuun also allows for fine-grained configuration of individual components and search
 spaces.
@@ -42,6 +49,9 @@ spaces.
 from tuun.main import Tuun
 
 config = {
+    # configure tuning backend
+    'backend': 'probo',
+
     # configure model
     'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
 
@@ -59,7 +69,8 @@ tu = Tuun(config)
 f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)
 ```
-This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.
+This should also find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32. See [this docs
+page](docs/configure.rst) for more details on possible configurations.
 
 
 
