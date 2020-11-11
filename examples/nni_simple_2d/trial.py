@@ -9,7 +9,7 @@ print('x = {}'.format(x))
 
 #xin = x['suggestion']['__ndarray__'][0]
 #xin = x['suggestion']['__ndarray__']
-xin = x['suggestion']
+xin = list(x.values())
 print('xin = {}'.format(xin))
 
 print('querying function now')
