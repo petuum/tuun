@@ -31,11 +31,12 @@ continuous Euclidean space within :math:`[-5, 5]`), a function is defined, and T
   result = tu.minimize_function(f, 20)
 
 This should find a minima at roughly: :math:`x^* = -0.73`, :math:`f(x^*) = -0.32`.
+For details on specifying the search space, see :doc:`this page <../search_space>`.
 
 
-*************************
-Configure Tuun components
-*************************
+******************
+Additional options
+******************
 
 Tuun also allows for fine-grained configuration of individual components and search
 spaces.
@@ -64,6 +65,10 @@ spaces.
 
   f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
   result = tu.minimize_function(f, 20)
+
+For details on configuring components, see :doc:`this page <../configure>`, and for
+details on specifying the search space, see :doc:`this page <../search_space>`.
+
 
 
 *************************
