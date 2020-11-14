@@ -1,5 +1,5 @@
-Search Spaces
-=============
+Search Space
+============
 
 This page describes the search spaces (also known as domains) that can be used in Tuun.
 We first decribe how to configure a search space, and then describe the format of the
@@ -18,6 +18,10 @@ via the :code:`set_config_from_list` function:
   search_space = # Set search space here
   tu.set_config_from_list(search_space)
 
+
+***********************
+Euclidean search spaces
+***********************
 
 For example, if we want to optimize over a **one-dimensional Euclidean space** within
 bounds :math:`[-5, 5],` we would configure our search space with:
@@ -42,6 +46,10 @@ would use the configuration:
 In this case, the format of each design is (again) a list containing a float for each
 dimension, for example: :code:`[ 1.27, 4.91 ]`.
 
+
+**********************
+Discrete search spaces
+**********************
 
 If we want to optimize over a **list of categories**, such as the strings :code:`'red'`,
 :code:`'green'`, and :code:`'blue'`, we would use the configuration:
