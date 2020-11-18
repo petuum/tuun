@@ -15,6 +15,7 @@ Configuration
 ***************
 
 Tuun adopts a personalized configuration that is specified in the optional 'classArgs' field with several default arguments (e.g., 'optimization_mode') as specified in the built-in tuners/advisors in [NNI](https://nni.readthedocs.io/en/latest/Overview.html). Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate in a range beween 1e-5 and 5e-4) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
+
 .. code-block:: yaml
 
     tuner:
