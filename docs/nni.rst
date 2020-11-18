@@ -8,13 +8,13 @@ intelligence) <https://github.com/microsoft/nni>`_.
 Overview
 ***************
 
-Like the default tuners provided in NNI, Tuun is a tuner for efficient Bayesian hyperparameter optimization via uncertainty modeling and can be easily adapted to the NNI environment.
+Similar to the default tuners provided in NNI for hyperparameter tuning through maximizing/minimizig a training objective, Tuun is a tuner that implements efficient Bayesian hyperparameter optimization via uncertainty modeling and can be easily adapted to the NNI environment.
 
 ***************
 Configuration
 ***************
 
-Tuun adopts a personalized configuration that is specified in the optional 'classArgs' field with several default arguments (e.g., 'optimization_mode') as specified in the built-in tuners/advisors in [NNI](https://nni.readthedocs.io/en/latest/Overview.html). Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate in a range beween 1e-5 and 5e-4) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
+Tuun adopts a personalized configuration that is specified in the optional `classArgs` field with several default arguments (e.g., 'optimization_mode') as specified in the built-in tuners/advisors in [NNI](https://nni.readthedocs.io/en/latest/Overview.html). Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate in a range beween 1e-5 and 5e-4) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
 
 .. code-block:: yaml
 
@@ -32,7 +32,7 @@ Tuun adopts a personalized configuration that is specified in the optional 'clas
             } 
 
 
-If you have more than one hyperparameter (e.g., we addionally tune on model type, which is in a categorical domain), in addition to the change made on the 'search_space' json file, the configuration argument can be tweaked like:
+If you have more than one hyperparameter (e.g., we addionally tune on model type, which is in a categorical domain), in addition to the change made on the `search_space` json file, the configuration argument can be tweaked like:
 
 .. code-block:: yaml
 
@@ -64,7 +64,7 @@ If you have more than one hyperparameter (e.g., we addionally tune on model type
             },
         } 
 
-Notice we change the name of 'acqoptimizer_config' to 'product' and include a list of 'pao_config_list' to specify the pao config corresponding to each hyperparameter. 
+Notice we change the name of `acqoptimizer_config` to 'product' and include a list of `pao_config_list` to specify the pao config corresponding to each hyperparameter. 
 
 ***************
 Get started
