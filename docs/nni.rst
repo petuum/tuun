@@ -16,6 +16,7 @@ Configuration
 
 Tuun adopts a personalized configuration that is specified in the optional 'classArgs' field with several default arguments (e.g., 'optimization_mode') as specified in the built-in tuners/advisors in [NNI](https://nni.readthedocs.io/en/latest/Overview.html). Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate in a range beween 1e-5 and 5e-4) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
 .. code-block:: yaml
+
     tuner:
       codeDir: $PATHTUUN/tuun-dev/tuun # PATHTUUN is the path where you have the source code of tuun
       classFileName: nni_tuner.py
@@ -33,6 +34,7 @@ Tuun adopts a personalized configuration that is specified in the optional 'clas
 If you have more than one hyperparameter (e.g., we addionally tune on model type, which is in a categorical domain), in addition to the change made on the 'search_space' json file, the configuration argument can be tweaked like:
 
 .. code-block:: yaml
+
     tuner:
       codeDir: /home/zeya.wang/ers/tuun/tuun-dev/tuun
       classFileName: nni_tuner.py
@@ -70,12 +72,14 @@ Get started
 After downloading the source code of TUUN to the specific directory, you only need to change the python path by:
 
 .. code-block:: console
+
     export PYTHONPATH=<$PATHTUUN> # PATHTUUN is the path where you have the source code of tuun 
 
 
 Currently in the training code, we follow the NNI examples to read the hyperparameters in each trial. In our above example, you can do:
 
 .. code-block:: python
+
     tuner_params = nni.get_next_parameter()
     params['bert_model'] = hyper_params[0]   # params is a dict that store all the hyperparameters
     params['learning_rate'] = hyper_params[1]
