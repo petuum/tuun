@@ -15,7 +15,7 @@ Configuration
 ***************
 
 Tuun adopts a personalized configuration that is specified in the optional :code:`classArgs` field with several default arguments (e.g., :code:`optimization_mode`) as specified in the built-in tuners/advisors in `NNI <https://nni.readthedocs.io/en/latest/Overview.html>`_. For NNI, instead of having a domain spec and domain list with Tuun, we specify the range/specification about hyperparameters in a file :code:`search_space.json`. Please see `this link <https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html>`_ for a more general instruction about how to set up this file.
-Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate in a range beween 1e-5 and 5e-4) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
+Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
 
 .. code-block:: yaml
 
@@ -71,14 +71,14 @@ Notice we change the name of :code:`acqoptimizer_config` to :code:`product` and 
 Get started
 ***************
 
-After downloading the source code of TUUN to the specific directory, you only need to change the python path by:
+After downloading the source code of Tuun to the specific directory, you only need to change the python path by:
 
 .. code-block:: console
 
-    export PYTHONPATH=<$PATHTUUN> # PATHTUUN is the path where you have the source code of tuun 
+    export PYTHONPATH=<$PATHTUUN> # PATHTUUN is the path where you have the source code of Tuun 
 
 
-Currently in the training code, we follow the NNI examples to read the hyperparameters in each trial. In our above example, you can do:
+Currently in the training code, we follow the NNI examples to report the results and read the hyperparameters in each trial (`link <https://nni.readthedocs.io/en/stable/hyperparameter_tune.html>`_). In our above example, for reading hyperparameters in each trial you can do:
 
 .. code-block:: python
 
