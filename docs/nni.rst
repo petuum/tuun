@@ -78,7 +78,7 @@ After downloading the source code of Tuun to the specific directory, you only ne
     export PYTHONPATH=<$PATHTUUN> # PATHTUUN is the path where you have the source code of Tuun 
 
 
-Currently in the training code, we follow the NNI examples to report the results and read the hyperparameters in each trial (`link <https://nni.readthedocs.io/en/stable/hyperparameter_tune.html>`_). In our above example, for reading hyperparameters in each trial you can do:
+Currently in the training code, we follow the NNI examples to report the results and read the hyperparameters in each trial (`link <https://nni.readthedocs.io/en/stable/TrialExample/Trials.html>`_). In our above example, for reading hyperparameters in each trial you can do:
 
 .. code-block:: python
 
@@ -87,7 +87,7 @@ Currently in the training code, we follow the NNI examples to report the results
     params['learning_rate'] = hyper_params[1]
 
 
-With this modification, the user can follow the guideline of `NNI <https://nni.readthedocs.io/en/latest/Overview.html>`_ to launch the whole experiment.
+With this modification, the user can follow the guideline of `NNI <https://nni.readthedocs.io/en/stable/Tutorial/QuickStart.html>`_ to launch the whole experiment.
 
 ***************
 Limitations
