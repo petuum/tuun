@@ -87,7 +87,7 @@ Currently in the training code, we follow the NNI examples to report the results
     params['learning_rate'] = hyper_params[1]
 
 
-With this modification, the user can follow the guideline of `NNI <https://nni.readthedocs.io/en/stable/Tutorial/QuickStart.html>`_ to launch the whole experiment.
+With this modification, the user can follow the `guideline of NNI <https://nni.readthedocs.io/en/stable/Tutorial/QuickStart.html>`_ to launch the whole experiment.
 
 ***************
 Limitations
