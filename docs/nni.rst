@@ -14,7 +14,7 @@ Similar to the default tuners provided in NNI for hyperparameter tuning through 
 Configuration
 ***************
 
-Tuun adopts a personalized configuration that is specified in the optional :code:`classArgs` field with several default arguments (e.g., :code:`optimization_mode`) as specified in the built-in tuners/advisors in `NNI <https://nni.readthedocs.io/en/latest/Overview.html>`_. For NNI, instead of having a domain spec and domain list with Tuun, we specify the range/specification about hyperparameters in a file :code:`search_space`. Please see `this link <https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html>`_ for a more general instruction about how to set up this file.
+Tuun adopts a personalized configuration that is specified in the optional :code:`classArgs` field with several default arguments (e.g., :code:`optimization_mode`) as specified in the built-in tuners/advisors in `NNI <https://nni.readthedocs.io/en/latest/Overview.html>`_. For NNI, instead of having a domain spec and domain list with Tuun, we specify the range/specification about hyperparameters in a file :code:`search_space.json`. Please see `this link <https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html>`_ for a more general instruction about how to set up this file.
 Here is a working example of how configuration is set for one hyperparameter (e.g., learning rate in a range beween 1e-5 and 5e-4) in the config file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a Gaussian process (GP) model. Note that the only changes are all about the tuner section in the config file. 
 
 .. code-block:: yaml
@@ -34,7 +34,7 @@ Here is a working example of how configuration is set for one hyperparameter (e.
             } 
 
 
-If you have more than one hyperparameter (e.g., we addionally tune on model type, which is in a categorical domain), in addition to the change made on the :code:`search_space` json file, the configuration argument can be tweaked like:
+If you have more than one hyperparameter (e.g., we addionally tune on model type, which is in a categorical domain), in addition to the change made on the :code:`search_space.json` file, the configuration argument can be tweaked like:
 
 .. code-block:: yaml
 
