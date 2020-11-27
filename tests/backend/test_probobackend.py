@@ -2,6 +2,8 @@
 Tests for ProboBackend class.
 """
 
+from argparse import Namespace
+
 from tuun.backend import ProboBackend
 
 
@@ -11,7 +13,14 @@ def test_initialize():
     acqfunction_config = {'name': 'default', 'acq_str': 'ei'}
     acqoptimizer_config = {'name': 'default', 'max_iter': 200}
     domain_config = {'name': 'real', 'min_max': [[-5, 5]]}
-    pb = ProboBackend(model_config, acqfunction_config, acqoptimizer_config, domain_config)
+    probo_config = {'real_idx': [0], 'all_real': True}
+    pb = ProboBackend(
+        model_config,
+        acqfunction_config,
+        acqoptimizer_config,
+        domain_config,
+        probo_config,
+    )
     assert getattr(pb, 'model_config', None)
 
 def test_suggest_to_minimize():
@@ -20,13 +29,18 @@ def test_suggest_to_minimize():
     acqfunction_config = {'name': 'default', 'acq_str': 'ei'}
     acqoptimizer_config = {'name': 'default', 'max_iter': 200}
     domain_config = {'name': 'real', 'min_max': [[0.0, 2.0]]}
-    pb = ProboBackend(model_config, acqfunction_config, acqoptimizer_config, domain_config)
+    probo_config = {'real_idx': [0], 'all_real': True}
+    pb = ProboBackend(
+        model_config,
+        acqfunction_config,
+        acqoptimizer_config,
+        domain_config,
+        probo_config,
+    )
 
-    data = {
-        'x': [[0.5], [1.0], [1.5]],
-        'y': [6.0, 1.0, 4.0],
-    }
-
+    data = Namespace()
+    data.x = [[0.5], [1.0], [1.5]]
+    data.y = [6.0, 1.0, 4.0]
     suggestion = pb.suggest_to_minimize(data)
     assert isinstance(suggestion, list)
     assert 0.75 < suggestion[0] < 1.25
