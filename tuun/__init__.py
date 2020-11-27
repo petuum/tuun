@@ -6,6 +6,8 @@ from .backend import ProboBackend, DragonflyBackend
 
 from .main import Tuun
 
+from .nni_tuner import TuunTuner
+
 from .probo import (
     AcqFunction,
     AcqOptimizer,
