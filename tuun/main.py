@@ -56,10 +56,14 @@ class Tuun:
 
     def _configure_tuun_for_probo(self, config):
         """Configure Tuun for Probo backend."""
+        probo_config = getattr(config, 'probo_config', None)
+        self.config.probo_config = probo_config
+
         domain_config = getattr(config, 'domain_config', None)
         if domain_config is None:
-            domain_config = {'name': 'real', 'min_max': [[0.0, 10.0]]}
-        self.config.domain_config = domain_config
+            domain_config = ('real', [0.0, 10.0])
+        search_space = self._convert_search_space_to_probo(domain_config)
+        self._set_domain_config_from_list(search_space)
 
         model_config = getattr(config, 'model_config', None)
         if model_config is None:
@@ -75,9 +79,6 @@ class Tuun:
         if acqoptimizer_config is None:
             acqoptimizer_config = {'name': 'default'}
         self.config.acqoptimizer_config = acqoptimizer_config
-
-        probo_config = getattr(config, 'probo_config', None)
-        self.config.probo_config = probo_config
 
     def _configure_tuun_for_dragonfly(self, config):
         """Configure Tuun for Dragonfly backend."""
@@ -124,12 +125,11 @@ class Tuun:
             optimization block which can have a unique domain type. Each element tuple
             consists of (domain type, domain bounds specification).
         """
-        assert type(search_space_list) in [list, tuple]
+        search_space_list = self._format_search_space_list(search_space_list)
 
-        if type(search_space_list) is list:
-            assert all([type(ss) is tuple for ss in search_space_list])
-        elif type(search_space_list) is tuple:
-            search_space_list = [search_space_list]
+        # Convert search_space_list to ProBO format.
+        # TODO: incorporate this into probo backend
+        search_space_list = self._convert_search_space_to_probo(search_space_list)
 
         domain_types = [ss[0] for ss in search_space_list]
         assert all([dt in ['real', 'list'] for dt in domain_types])
@@ -148,6 +148,17 @@ class Tuun:
 
         # Set self.backend given the above updates
         self._set_backend()
+
+    def _format_search_space_list(self, search_space_list):
+        """Return search_space_list in correct format."""
+        assert type(search_space_list) in [list, tuple]
+
+        if type(search_space_list) is list:
+            assert all([type(ss) is tuple for ss in search_space_list])
+        elif type(search_space_list) is tuple:
+            search_space_list = [search_space_list]
+
+        return search_space_list
 
     def _set_model_config_from_list(self, domain_types):
         """
@@ -238,6 +249,38 @@ class Tuun:
 
         return ao_config
 
+    def _convert_search_space_to_probo(self, search_space_list):
+        """
+        Given a search_space_list as a list of tuples, each representing a single
+        dimension of the search space, combine 'real' types, form blocks, and record
+        transformation.
+        """
+        search_space_list = self._format_search_space_list(search_space_list)
+
+        # Instantiate self.config.probo_config if it does not exist
+        if not self.config.probo_config:
+            self.config.probo_config = {}
+
+        real_idx = [i for i, ss in enumerate(search_space_list) if ss[0]=='real']
+        self.config.probo_config['real_idx'] = real_idx
+
+        if len(real_idx) == len(search_space_list):
+            self.config.probo_config['all_real'] = True
+        else:
+            self.config.probo_config['all_real'] = False
+
+        if len(real_idx) > 0:
+            ss_list = []
+            real_tup = ('real', [search_space_list[i][1] for i in real_idx])
+            ss_list.append(real_tup)
+            for i, ss in enumerate(search_space_list):
+                if i not in real_idx:
+                    ss_list.append(ss)
+        else:
+            ss_list = search_space_list
+
+        return ss_list
+
     def _set_domain_config_from_list(self, search_space_list):
         """
         Helper function for self.set_config_from_list to update
@@ -274,56 +317,6 @@ class Tuun:
 
         return dom_config
 
-    def _transform_domain_config(self):
-        """Transform domain."""
-
-        # Normalize
-        if self.config.domain_config['name'] == 'product':
-            for domain_config in self.config.domain_config['dom_config_list']:
-                domain_config = self._normalize_domain_config_block(domain_config)
-        else:
-            domain_config = self.config.domain_config
-            domain_config = self._normalize_domain_config_block(domain_config)
-
-        # Reset self.backend
-        self._set_backend()
-
-    def _normalize_domain_config_block(self, domain_config):
-        """Return domain config, possibly normalized to [0, 10]."""
-        normalize_real = getattr(self.config, 'normalize_real', False)
-        if domain_config['name'] == 'real' and normalize_real:
-            domain_config['min_max_init'] = domain_config['min_max']
-            domain_config['min_max'] = [[0, 10] for _ in domain_config['min_max']]
-        return domain_config
-
-    def _transform_data(self, data, inverse=False):
-        """Return transformed data Namespace."""
-        data.x = [self._transform_x(xi, inverse=inverse) for xi in data.x]
-        return data
-
-    def _transform_x(self, x, inverse=False):
-        """Return transformed domain point x."""
-        if self.config.domain_config['name'] == 'product':
-            dom_config_list = self.config.domain_config['dom_config_list']
-            for x_block, dom_config in zip(x, dom_config_list):
-                x_block = self._normalize_x_block(x_block, dom_config, inverse=inverse)
-        else:
-            x = self._normalize_x_block(x, self.config.domain_config, inverse=inverse)
-        return x
-
-    def _normalize_x_block(self, x, domain_config, inverse=False):
-        """Return x, possibly normalized to [0, 10]."""
-        normalize_real = getattr(self.config, 'normalize_real', False)
-        if domain_config['name'] == 'real' and normalize_real:
-            for i, bounds in enumerate(domain_config['min_max_init']):
-                if inverse is True:
-                    scale_factor = (bounds[1] - bounds[0]) / 10.0
-                    x[i] = x[i] * scale_factor + bounds[0]
-                else:
-                    scale_factor = 10.0 / (bounds[1] - bounds[0])
-                    x[i] = (x[i] - bounds[0]) * scale_factor
-        return x
-
     def suggest_to_minimize(self, data=None, verbose=True, seed=None):
         """
         Suggest a single design (i.e. a point to evaluate) to minimize.
@@ -338,10 +331,7 @@ class Tuun:
             If not None, set the random seed to seed.
         """
         self._set_seed(seed=seed)
-        data = self._format_data_input(data)
-
-        # Transform data
-        data = self._transform_data(data)
+        data = self._format_initial_data(data)
 
         # Set data-dependent subseed
         subseed = int(np.random.uniform(12345 * (len(data.x) + 1)))
@@ -350,10 +340,6 @@ class Tuun:
         suggestion = self.backend.suggest_to_minimize(
             data=data, verbose=verbose, seed=subseed
         )
-
-        # Inverse transform data and suggestion
-        data = self._transform_data(data, inverse=True)
-        suggestion = self._transform_x(suggestion, inverse=True)
 
         return suggestion
 
@@ -370,7 +356,7 @@ class Tuun:
         seed : int
             If not None, set the random seed to seed.
         """
-        data = self._format_data_input(data)
+        data = self._format_initial_data(data)
         data.y = [-1*v for v in data.y]
         suggestion = self.suggest_to_minimize(data, verbose, seed)
         return suggestion
@@ -407,10 +393,7 @@ class Tuun:
             If not None, set the random seed to seed.
         """
         self._set_seed(seed=seed)
-        data = self._format_data_input(data)
-
-        # Transform domain
-        self._transform_domain_config()
+        data = self._format_initial_data(data)
 
         if use_backend_minimize:
             result = self._run_backend_minimize_function()
@@ -436,7 +419,7 @@ class Tuun:
 
         return result
 
-    def _format_data_input(self, data):
+    def _format_initial_data(self, data):
         """Format and return data Namespace."""
         if data is None:
             data = Namespace(x=[], y=[])
