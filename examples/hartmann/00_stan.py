@@ -8,7 +8,7 @@ config = {
 }
 tu = Tuun(config)
 
-search_space_list = [('real', [[0, 1]] * 6)]
+search_space_list = [('real', [0, 1])] * 6
 tu.set_config_from_list(search_space_list)
 
 f = hartmann6
