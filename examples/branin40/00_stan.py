@@ -10,7 +10,7 @@ config = {
 }
 tu = Tuun(config)
 
-search_space_list = [('real', [[-5, 10], [0, 15]]  * 20)]
+search_space_list = [('real', [-5, 10]), ('real', [0, 15])] * 20
 tu.set_config_from_list(search_space_list)
 
 f = lambda x: np.sum([branin(x[2 * i : 2 * i + 2]) for i in range(20)])
