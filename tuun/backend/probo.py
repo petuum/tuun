@@ -1,6 +1,8 @@
 """
 Code for using ProBO as the backend tuning system.
 """
+from argparse import Namespace
+import copy
 
 import tuun.probo as probo
 from .core import Backend
@@ -35,7 +37,14 @@ class ProboBackend(Backend):
         self.acqfunction_config = acqfunction_config
         self.acqoptimizer_config = acqoptimizer_config
         self.domain_config = domain_config
+
+        # Set self.probo_config
+        if not probo_config:
+            probo_config = {}
         self.probo_config = probo_config
+
+        # Transform domain
+        self._transform_domain_config()
 
     def minimize_function(
         self, f, n_iter=10, data=None, data_update_fun=None, verbose=True, seed=None
@@ -58,12 +67,22 @@ class ProboBackend(Backend):
         seed : int
             If not None, set ProBO random seed to seed.
         """
+        # Convert data format
+        data = self._convert_tuun_data_to_probo(data)
+
+        # Transform data
+        data = self._transform_data(data)
+
+        # Set model, acqfunction, acqoptimizer
         model = self._get_model()
         acqfunction = self._get_acqfunction()
         acqoptimizer = self._get_acqoptimizer()
 
         bo_params = {'n_iter': n_iter}
 
+        # TODO: if self.probo_config['normalize_real'], the following will optimize
+        # original (untransformed) function f over transformed domain and with
+        # transformed initial data. This is incorrect.
         bo = probo.SimpleBo(
             f=f,
             model=model,
@@ -92,6 +111,13 @@ class ProboBackend(Backend):
         seed : int
             If not None, set ProBO random seed to seed.
         """
+        # Convert data format
+        data = self._convert_tuun_data_to_probo(data)
+
+        # Transform data
+        data = self._transform_data(data)
+
+        # Set model, acqfunction, acqoptimizer
         model = self._get_model(verbose)
         acqfunction = self._get_acqfunction(verbose)
         acqoptimizer = self._get_acqoptimizer(verbose)
@@ -112,6 +138,10 @@ class ProboBackend(Backend):
         if verbose:
             print('Suggestion: {}'.format(suggestion))
 
+        # Inverse transform suggestion
+        suggestion = self._transform_x(suggestion, inverse=True)
+
+        suggestion = self._convert_probo_suggestion_to_tuun(suggestion)
         return suggestion
 
     def _get_model(self, verbose=True):
@@ -265,3 +295,99 @@ class ProboBackend(Backend):
             domain = probo.ListDomain(dom_config, verbose=verbose)
 
         return domain
+
+    def _convert_probo_suggestion_to_tuun(self, suggestion):
+        """
+        Given a suggestion from probo, convert to suggestion in Tuun format: a list with
+        one element for each 1D type (including one element per real dimension).
+        """
+        real_idx = self.probo_config['real_idx']
+        if not real_idx:
+            # Only list types
+            if isinstance(suggestion, list):
+                new_suggestion = suggestion
+            else:
+                new_suggestion = [suggestion]
+        elif self.probo_config['all_real']:
+            # Only real types
+            new_suggestion = suggestion
+        else:
+            # Blocks of multiple types, with all real in first block
+            new_suggestion = suggestion[1:]
+            for idx, real in zip(real_idx, suggestion[0]):
+                new_suggestion.insert(idx, real)
+
+        return new_suggestion
+
+    def _convert_tuun_data_to_probo(self, data):
+        """
+        Given data Namespace in Tuun format (i.e. data.x is a list with each element
+        corresponding to a 1D type, including one element per real dimension), convert
+        to ProBO format (blocks of potentially multiple types, with all real in first
+        block).
+        """
+        real_idx = self.probo_config['real_idx']
+        data = copy.deepcopy(data)
+        if not real_idx or self.probo_config['all_real']:
+            new_data = data
+        else:
+            new_data_x = []
+            for xi in data.x:
+                real_list = [xi[idx] for idx in real_idx]
+                new_xi = [real_list]
+
+                _ = [xi.remove(real) for real in real_list]
+                new_xi.extend(xi)
+                new_data_x.append(new_xi)
+            new_data = Namespace(x=new_data_x, y=data.y)
+
+        return new_data
+
+    def _transform_domain_config(self):
+        """Transform domain."""
+
+        # Normalize
+        if self.domain_config['name'] == 'product':
+            for domain_config in self.domain_config['dom_config_list']:
+                domain_config = self._normalize_domain_config_block(domain_config)
+        else:
+            domain_config = self.domain_config
+            domain_config = self._normalize_domain_config_block(domain_config)
+
+    def _normalize_domain_config_block(self, domain_config):
+        """Return domain config, possibly normalized to [0, 10]."""
+        normalize_real = self.probo_config.get('normalize_real', False)
+        if domain_config['name'] == 'real' and normalize_real:
+            domain_config['min_max_init'] = domain_config['min_max']
+            domain_config['min_max'] = [[0, 10] for _ in domain_config['min_max']]
+        return domain_config
+
+    def _transform_data(self, data, inverse=False):
+        """Return transformed data Namespace."""
+        data.x = [self._transform_x(xi, inverse=inverse) for xi in data.x]
+        return data
+
+    def _transform_x(self, x, inverse=False):
+        """Return transformed domain point x."""
+        if self.domain_config['name'] == 'product':
+            dom_config_list = self.domain_config['dom_config_list']
+            for x_block, dom_config in zip(x, dom_config_list):
+                x_block = self._normalize_x_block(x_block, dom_config, inverse=inverse)
+        else:
+            x = self._normalize_x_block(x, self.domain_config, inverse=inverse)
+        return x
+
+    def _normalize_x_block(self, x, domain_config, inverse=False):
+        """Return x, possibly normalized to [0, 10]."""
+        normalize_real = self.probo_config.get('normalize_real', False)
+        if domain_config['name'] == 'real' and normalize_real:
+            for i, bounds in enumerate(domain_config['min_max_init']):
+                if inverse is True:
+                    scale_factor = (bounds[1] - bounds[0]) / 10.0
+                    x[i] = x[i] * scale_factor + bounds[0]
+                    #x = x * scale_factor + bounds[0]
+                else:
+                    scale_factor = 10.0 / (bounds[1] - bounds[0])
+                    x[i] = (x[i] - bounds[0]) * scale_factor
+                    #x = (x - bounds[0]) * scale_factor
+        return x
