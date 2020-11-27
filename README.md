@@ -29,13 +29,13 @@ from tuun.main import Tuun
 tu = Tuun()
 
 # set search space
-search_space = ('real', [[-5, 5]])
+search_space = ('real', [-5, 5])
 tu.set_config_from_list(search_space)
 
 # define function to optimize
 f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 
-# tune function over search space
+# minimize function over search space
 result = tu.minimize_function(f, 20)
 ```
 This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.  See [this docs
@@ -62,7 +62,7 @@ config = {
     'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
 
     # configure domain
-    'domain_config': {'name': 'real', 'min_max': [(-5, 5)]},
+    'domain_config': ('real', [-5, 5]),
 }
 tu = Tuun(config)
 
