@@ -116,19 +116,7 @@ class TuunTuner(Tuner):
             Information to define a search space.
         """
         self.parameter_keys = list(search_space.keys())
-        dom_config = json2space(search_space)
-
-        # Merge multiple min_max to a multi-dimension list
-        dom_config_list = []
-        dom_config_real = ('real', [])
-        for xi in dom_config:
-            if xi[0] == 'real':
-                dom_config_real[1].append(xi[1])
-            else:
-                dom_config_list.append(xi)
-        if len(dom_config_real[1]) > 0:
-            dom_config_list.append(dom_config_real)
-        print('domain config:', dom_config_list)
+        dom_config_list = json2space(search_space)
         self.tuun.set_config_from_list(dom_config_list)
 
     def generate_parameters(self, parameter_id, **kwargs):
