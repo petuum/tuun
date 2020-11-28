@@ -26,22 +26,8 @@ tuner:
     tuun_config: {
         'seed': 11,
         'backend': 'probo',
-        #'model_config': {'name': 'simplegp', 'ls': 3.0, 'alpha': 1.5, 'sigma': 1e-5},
-        'model_config': {
-            'name': 'stangp',
-            'ndimx': 2,
-            'model_str': 'optfixedsig',
-            'ig1': 4.0,
-            'ig2': 3.0,
-            'n1': 1.0,
-            'n2': 1.0,
-            'sigma': 1e-5,
-            'niter': 70,
-        },
-        #'model_config': {'name': 'gpytorchgp'},
+        'model_config': {'name': 'standistmatgp'},
         'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
-        #'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
-        'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
     } 
 trial:
   command: python trial.py
