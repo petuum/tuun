@@ -38,7 +38,7 @@ f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 # minimize function over search space
 result = tu.minimize_function(f, 20)
 ```
-This should find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32.  See [this docs
+This should find a minima at roughly: 𝑥\*=[−0.73], where 𝑓(𝑥\*)=−0.32.  See [this docs
 page](docs/search_space.rst) for more details on defining different search spaces for
 Tuun.
 
@@ -69,8 +69,8 @@ tu = Tuun(config)
 f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)
 ```
-This should also find a minima at roughly: 𝑥\*=−0.73, 𝑓(𝑥\*)=−0.32. See [this docs
-page](docs/configure.rst) for more details on possible configurations.
+This should also find a minima at roughly: 𝑥\*=[−0.73], where 𝑓(𝑥\*)=−0.32. See [this
+docs page](docs/configure.rst) for more details on possible configurations.
 
 
 
