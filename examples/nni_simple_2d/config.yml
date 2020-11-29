@@ -25,21 +25,7 @@ tuner:
     optimize_mode: minimize
     tuun_config: {
         'backend': 'probo',
-        'model_config': {'name': 'standistmatgp'},
-        #'model_config': {
-            #'name': 'stangp',
-            #'ndimx': 2,
-            #'model_str': 'optfixedsig',
-            #'ig1': 4.0,
-            #'ig2': 3.0,
-            #'n1': 1.0,
-            #'n2': 1.0,
-            #'sigma': 1e-5,
-            #'niter': 70,
-        #},
         'acqfunction_config': {'name': 'default', 'acq_str': 'ucb'},
-        'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
-        #'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
     } 
 trial:
   command: python trial.py
