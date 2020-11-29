@@ -1,4 +1,0 @@
-{
-    "x1": {"_type": "choice", "_value": ["a", "b", "c", "d", "e"]},
-    "x2": {"_type": "uniform", "_value": [-10.0, 10.0]}
-}
