@@ -21,17 +21,18 @@ continuous Euclidean space within :math:`[-5, 5]`), a function is defined, and T
   tu = Tuun()
 
   # set search space
-  search_space = ('real', [[-5, 5]])
+  search_space = ('real', [-5, 5])
   tu.set_config_from_list(search_space)
 
   # define function to optimize
   f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 
-  # tune function over search space
+  # minimize function over search space
   result = tu.minimize_function(f, 20)
 
-This should find a minima at roughly: :math:`x^* = -0.73`, :math:`f(x^*) = -0.32`.
-For details on specifying the search space, see :doc:`this page <../search_space>`.
+This should find a minima at roughly: :math:`x^* = [ -0.73 ]`, where :math:`f(x^*) =
+-0.32`.  For details on specifying the search space, see :doc:`this page
+<../search_space>`.
 
 
 ******************
@@ -59,7 +60,7 @@ spaces.
       'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
 
       # configure domain
-      'domain_config': {'name': 'real', 'min_max': [(-5, 5)]},
+      'domain_config': ('real', [-5, 5]),
   }
   tu = Tuun(config)
 
@@ -74,6 +75,7 @@ details on specifying the search space, see :doc:`this page <../search_space>`.
 *************************
 Initialize with a dataset
 *************************
+
 We often want to start optimization with an initial dataset of :math:`(x, y)` pairs. The
 script below shows how to initialize Tuun with a given dataset. In this case, we
 initialize with a dataset of 3 function queries.
@@ -86,7 +88,7 @@ initialize with a dataset of 3 function queries.
   tu = Tuun()
 
   # set search space
-  search_space = ('real', [[-5, 5]])
+  search_space = ('real', [-5, 5])
   tu.set_config_from_list(search_space)
 
   # define function to optimize
@@ -95,5 +97,5 @@ initialize with a dataset of 3 function queries.
   # set initial dataset
   data = {'x': [[0.0], [1.0], [2.0]], 'y': [6.0, 3.0, 4.0]}
 
-  # tune function over search space
+  # minimize function over search space
   result = tu.minimize_function(f, 20, data=data)
