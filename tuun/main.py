@@ -227,6 +227,7 @@ class Tuun:
                     'max_iter': 200,
                     'init_str': 'bsf',
                     'jitter': jitter,
+                    'jitter_val': 0.2,
                     'n_init_rs': n_init_rs,
                 }
             else:
@@ -235,6 +236,7 @@ class Tuun:
                     'init_str': 'bsf',
                     'rand_every': 4,
                     'jitter': jitter,
+                    'jitter_val': 0.2,
                     'n_init_rs': n_init_rs,
                 }
 
