@@ -216,6 +216,7 @@ class Tuun:
         """
         assert dt in ['real', 'list']
         jitter = self.config.acqoptimizer_config.get('jitter', False)
+        jitter_val = self.config.acqoptimizer_config.get('jitter_val', 0.2)
         n_init_rs = self.config.acqoptimizer_config.get('n_init_rs', 5)
         acqoptimizer_name = self.config.acqoptimizer_config.get('name')
 
@@ -227,7 +228,7 @@ class Tuun:
                     'max_iter': 200,
                     'init_str': 'bsf',
                     'jitter': jitter,
-                    'jitter_val': 0.2,
+                    'jitter_val': jitter_val,
                     'n_init_rs': n_init_rs,
                 }
             else:
