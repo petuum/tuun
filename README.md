@@ -73,6 +73,14 @@ This should also find a minima at roughly: 𝑥\*=[−0.73], where 𝑓(𝑥\*)=
 docs page](docs/configure.rst) for more details on possible configurations.
 
 
+## Use in NNI
+
+Tuun can be used as a custom tuner in [NNI (neural network
+intelligence)](https://github.com/microsoft/nni), which allows for visualization and
+experiment management. See [this docs page](docs/nni.rst) for more details, and [this
+directory](examples/nni_simple_2d) for a minimal example.
+
+
 
 ## Examples
 <p align="center">
