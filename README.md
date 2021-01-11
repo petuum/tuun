@@ -19,6 +19,10 @@ $ python tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
 
 
 ## Quick Start
+
+**Note:** Tuun is still in the early stages and the following API and functionality may
+undergo changes.
+
 Here is a minimal working example, which uses Tuun to optimize a function over a
 one-dimensional Euclidean search space with bounds [-5, 5].
 
@@ -81,10 +85,30 @@ experiment management. See [this docs page](docs/nni.rst) for more details, and 
 directory](examples/nni_simple_2d) for a minimal example.
 
 
-
 ## Examples
+
+See a few examples of Tuun [here](examples/).
+
 <p align="center">
     <img src="docs/images/hartmann6.png" alt="Hartmann 6 Dimensions" width="48%">
     &nbsp; &nbsp;
     <img src="docs/images/branin40.png" alt="Branin 40 Dimensions" width="48%">
+</p>
+
+
+## Roadmap
+
+
+## Affiliations
+
+Tuun is part of the CASL project.
+<p align="left"><img src="docs/images/casl_logo.svg" width=280></p>
+
+Companies and universities using Tuun.
+<p align="top">
+    <img src="docs/images/cmu_logo.png" width="15%">
+    &nbsp; &nbsp; &nbsp; &nbsp;
+    <img src="docs/images/petuum_logo.svg" width="24%">
+    &nbsp; &nbsp;
+    <img src="docs/images/stanford_logo.png" width="20%">
 </p>
