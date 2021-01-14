@@ -6,7 +6,8 @@ distributed settings.
 
 ## Installation
 
-Tuun requires Python 3.6+. To install all dependencies for development, run:
+Tuun requires Python 3.6+. To install all dependencies for development, clone and `cd`
+into this repo, and run:
 ```
 $ pip install -r requirements/requirements_dev.txt
 ```
@@ -87,8 +88,11 @@ directory](examples/nni_simple_2d) for a minimal example.
 
 ## Examples
 
-See a few examples of Tuun [here](examples/).
+See a few examples of Tuun [here](examples/), including the setup for various benchmark
+functions, different types of search spaces, and use within NNI.
 
+The plots below show a couple examples of Tuun, along with other tuning algorithms, on
+benchmark functions.
 <p align="center">
     <img src="docs/images/hartmann6.png" alt="Hartmann 6 Dimensions" width="48%">
     &nbsp; &nbsp;
@@ -101,10 +105,10 @@ See a few examples of Tuun [here](examples/).
 
 ## Affiliations
 
-Tuun is part of the CASL project.
+Tuun is part of the [CASL project](http://casl-project.ai/).
 <p align="left"><img src="docs/images/casl_logo.svg" width=280></p>
 
-Companies and universities using Tuun.
+Companies and universities using and developing Tuun.
 <p align="top">
     <img src="docs/images/cmu_logo.png" width="15%">
     &nbsp; &nbsp; &nbsp; &nbsp;
