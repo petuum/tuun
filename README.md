@@ -1,8 +1,15 @@
-<p align="center"><img src="docs/images/tuun_logo.png" width=280 /></p>
+<p align="center"><img src="docs/images/tuun_logo.svg" width=280 /></p>
+
+<p align="center">
+    &emsp;&emsp;
+    <a href="https://petuum.github.io/tuun">Documentation</a> and
+    <a href="https://github.com/petuum/tuun/tree/master/examples">Examples</a>
+</p>
 
 **Tuun** is a toolkit for efficient hyperparameter tuning via uncertainty
 modeling, with a focus on flexible model choice, scalability, and use in
 distributed settings.
+
 
 ## Installation
 
@@ -44,8 +51,8 @@ f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)
 ```
 This should find a minima at roughly: 𝑥\*=[−0.73], where 𝑓(𝑥\*)=−0.32.  See [this docs
-page](docs/search_space.rst) for more details on defining different search spaces for
-Tuun.
+page](https://petuum.github.io/tuun/search_space.html) for more details on defining
+different search spaces for Tuun.
 
 Tuun also allows for fine-grained configuration of individual components and search
 spaces.
@@ -75,15 +82,16 @@ f = lambda x: x[0] ** 4 - x[0] ** 2 + 0.1 * x[0]
 result = tu.minimize_function(f, 20)
 ```
 This should also find a minima at roughly: 𝑥\*=[−0.73], where 𝑓(𝑥\*)=−0.32. See [this
-docs page](docs/configure.rst) for more details on possible configurations.
+docs page](https://petuum.github.io/tuun/configure.html) for more details on possible
+configurations.
 
 
 ## Use in NNI
 
 Tuun can be used as a custom tuner in [NNI (neural network
 intelligence)](https://github.com/microsoft/nni), which allows for visualization and
-experiment management. See [this docs page](docs/nni.rst) for more details, and [this
-directory](examples/nni_simple_2d) for a minimal example.
+experiment management. See [this docs page](https://petuum.github.io/tuun/nni.html) for
+more details, and [this directory](examples/nni_simple_2d) for a minimal example.
 
 
 ## Examples
@@ -98,9 +106,6 @@ benchmark functions.
     &nbsp; &nbsp;
     <img src="docs/images/branin40.png" alt="Branin 40 Dimensions" width="48%">
 </p>
-
-
-## Roadmap
 
 
 ## Affiliations
