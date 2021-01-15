@@ -1,7 +1,13 @@
 Installation
 ============
 
-Tuun requires Python 3.6+. To install all dependencies for development, run:
+Tuun requires Python 3.6+. To install all dependencies for development, first clone Tuun:
+
+.. code-block:: console
+
+  $ git clone https://github.com/petuum/tuun.git
+
+Then :code:`cd` into this repo, and run:
 
 .. code-block:: console
 

@@ -22,18 +22,18 @@ Tuun adopts a personalized configuration that is specified in the optional
 as specified in the built-in tuners/advisors in `NNI
 <https://nni.readthedocs.io/en/latest/Overview.html>`_. When using Tuun with NNI,
 instead of specifying a domain specification or search space with Tuun, we specify the
-range/specification of hyperparameters in a file :code:`search_space.json`. Please
-see `this link <https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html>`_
-for a more general instruction about how to set up this file.  Here is a working example
-of how configuration is set for one hyperparameter (e.g., learning rate) in the config
-file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a
-Gaussian process (GP) model. Note that the only changes involve the tuner section in the
-config file.
+range/specification of hyperparameters in a file :code:`search_space.json`. Please see
+`this link <https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html>`_ for a
+more general instruction about how to set up this file.  Here is a working example of a
+configuration for a search spacing consisting of one hyperparameter (e.g. learning rate)
+in the config file of NNI, which uses Tuun to optimize a function via Bayesian
+optimization with a Gaussian process (GP) model. Note that the only changes involve the
+tuner section in the config file.
 
 .. code-block:: yaml
 
     tuner:
-      codeDir: $PATHTUUN/tuun-dev/tuun # PATHTUUN is the path where you have the source code of tuun
+      codeDir: $PATHTUUN/tuun # PATHTUUN is the path to the Tuun repo
       classFileName: nni_tuner.py
         className: TuunTuner
         classArgs:
@@ -51,7 +51,7 @@ section:
 .. code-block:: yaml
 
     tuner:
-      codeDir: $PATHTUUN/tuun-dev/tuun # PATHTUUN is the path where you have the source code of tuun
+      codeDir: $PATHTUUN/tuun # PATHTUUN is the path to the Tuun repo
       classFileName: nni_tuner.py
         className: TuunTuner
         classArgs:
@@ -59,17 +59,17 @@ section:
         tuun_config: {
             'seed': 1234,
             'backend': 'probo',
-            'model_config': {'name': 'standistmatgp'},
+            'model_config': {'name': 'standistmatgp'}, # for Stan model
             'acqfunction_config': {'name': 'default', 'acq_str': 'ei'},
             }
 
 
-Alternative acquisition optimization algorithms can also be specified, as follows:
+Alternative acquisition optimization algorithms can also be specified as follows:
 
 .. code-block:: yaml
 
     tuner:
-      codeDir: $PATHTUUN/tuun-dev/tuun # PATHTUUN is the path where you have the source code of tuun
+      codeDir: $PATHTUUN/tuun # PATHTUUN is the path to the Tuun repo
       classFileName: nni_tuner.py
         className: TuunTuner
         classArgs:
@@ -94,7 +94,10 @@ After downloading the source code of Tuun to the specific directory, you only ne
     export PYTHONPATH=<$PATHTUUN> # PATHTUUN is the path where you have the source code of Tuun 
 
 
-Currently in the training code, we follow the NNI examples to report the results and read the hyperparameters in each trial (`link <https://nni.readthedocs.io/en/stable/TrialExample/Trials.html>`_). In our above example, for reading hyperparameters in each trial you can do:
+Currently in the training code, we follow the NNI examples to report the results and
+read the hyperparameters in each trial (`link
+<https://nni.readthedocs.io/en/stable/TrialExample/Trials.html>`_). In our above
+example, for reading hyperparameters in each trial you can do:
 
 .. code-block:: python
 
@@ -107,6 +110,14 @@ Currently in the training code, we follow the NNI examples to report the results
 With this modification, you can follow the `guidelines of NNI
 <https://nni.readthedocs.io/en/stable/Tutorial/QuickStart.html>`_ to launch the full
 experiment.
+
+
+***************
+Examples
+***************
+
+For full code examples showing the use of Tuun in NNI, see the :code:`nni_*` directories
+`here <https://github.com/petuum/tuun/tree/master/examples>`_.
 
 ***************
 Limitations
