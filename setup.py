@@ -55,5 +55,5 @@ if __name__ == "__main__":
                                                    "tuun.*"]),
         python_requires='>=3.6',
         install_requires=read_requirements("requirements",
-                                           "requirements.txt")
+                                           "requirements_dev.txt")
     )
