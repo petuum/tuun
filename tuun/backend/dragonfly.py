@@ -4,9 +4,13 @@ Code for using Dragonfly as the backend tuning system.
 
 from argparse import Namespace
 import numpy as np
-import dragonfly
 
 from .core import Backend
+from ..util.misc_util import dict_to_namespace, suppress_stdout_stderr
+
+
+with suppress_stdout_stderr():
+    import dragonfly
 
 
 class DragonflyBackend(Backend):

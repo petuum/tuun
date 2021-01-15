@@ -4,7 +4,7 @@ from branin import branin
 config = {
     'seed': 11,
     'model_config': {
-        'name': 'stangp',
+        'name': 'standistmatgp',
         'ndimx': 2,
         'model_str': 'optfixedsig',
         'ig1': 4.0,
