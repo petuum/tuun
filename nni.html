@@ -1,0 +1,331 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Use in NNI &mdash; Tuun 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/custom.css" type="text/css" />
+
+  
+  
+    <link rel="shortcut icon" href="_static/tuun_logo_only.png"/>
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tuun Examples" href="examples/index.html" />
+    <link rel="prev" title="Configure Components" href="configure.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Tuun
+          
+
+          
+            
+            <img src="_static/tuun_logo_space.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quick_start.html#minimal-example">Minimal example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quick_start.html#additional-options">Additional options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quick_start.html#initialize-with-a-dataset">Initialize with a dataset</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="search_space.html">Search Space</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="search_space.html#euclidean-search-spaces">Euclidean search spaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="search_space.html#discrete-search-spaces">Discrete search spaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="search_space.html#combining-search-spaces">Combining search spaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configure.html">Configure Components</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Use in NNI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#get-started">Get started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Tuun Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/benchmark.html">Tuning Benchmarks</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Tuun</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Use in NNI</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/nni.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="use-in-nni">
+<h1>Use in NNI<a class="headerlink" href="#use-in-nni" title="Permalink to this headline">¶</a></h1>
+<p>This page describes how Tuun can be used as a <em>custom tuner</em> in <a class="reference external" href="https://github.com/microsoft/nni">NNI (neural network
+intelligence)</a>.</p>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Similar to the default tuners provided in NNI for hyperparameter tuning through
+maximizing/minimizing a training objective, Tuun is a tuner that implements efficient
+Bayesian hyperparameter optimization via uncertainty modeling and can be easily adapted
+to the NNI environment.</p>
+</div>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>Tuun adopts a personalized configuration that is specified in the optional
+<code class="code docutils literal notranslate"><span class="pre">classArgs</span></code> field with several default arguments (e.g., <code class="code docutils literal notranslate"><span class="pre">optimization_mode</span></code>)
+as specified in the built-in tuners/advisors in <a class="reference external" href="https://nni.readthedocs.io/en/latest/Overview.html">NNI</a>. When using Tuun with NNI,
+instead of specifying a domain specification or search space with Tuun, we specify the
+range/specification of hyperparameters in a file <code class="code docutils literal notranslate"><span class="pre">search_space.json</span></code>. Please
+see <a class="reference external" href="https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html">this link</a>
+for a more general instruction about how to set up this file.  Here is a working example
+of how configuration is set for one hyperparameter (e.g., learning rate) in the config
+file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a
+Gaussian process (GP) model. Note that the only changes involve the tuner section in the
+config file.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tuner</span><span class="p">:</span>
+  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun-dev/tuun</span> <span class="c1"># PATHTUUN is the path where you have the source code of tuun</span>
+  <span class="nt">classFileName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">nni_tuner.py</span>
+    <span class="l l-Scalar l-Scalar-Plain">className</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">TuunTuner</span>
+    <span class="l l-Scalar l-Scalar-Plain">classArgs</span><span class="p p-Indicator">:</span>
+    <span class="nt">optimization_mode</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">minimize</span>
+    <span class="nt">tuun_config</span><span class="p">:</span> <span class="p p-Indicator">{</span>
+        <span class="s">&#39;seed&#39;</span><span class="p p-Indicator">:</span> <span class="nv">1234</span><span class="p p-Indicator">,</span>
+        <span class="s">&#39;backend&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;probo&#39;</span><span class="p p-Indicator">,</span>
+        <span class="s">&#39;acqfunction_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;default&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;acq_str&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;ei&#39;</span><span class="p p-Indicator">},</span>
+        <span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+<p>To configure Tuun to use a Stan model, you can instead using the following in the tuner
+section:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tuner</span><span class="p">:</span>
+  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun-dev/tuun</span> <span class="c1"># PATHTUUN is the path where you have the source code of tuun</span>
+  <span class="nt">classFileName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">nni_tuner.py</span>
+    <span class="l l-Scalar l-Scalar-Plain">className</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">TuunTuner</span>
+    <span class="l l-Scalar l-Scalar-Plain">classArgs</span><span class="p p-Indicator">:</span>
+    <span class="nt">optimization_mode</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">minimize</span>
+    <span class="nt">tuun_config</span><span class="p">:</span> <span class="p p-Indicator">{</span>
+        <span class="s">&#39;seed&#39;</span><span class="p p-Indicator">:</span> <span class="nv">1234</span><span class="p p-Indicator">,</span>
+        <span class="s">&#39;backend&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;probo&#39;</span><span class="p p-Indicator">,</span>
+        <span class="s">&#39;model_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;standistmatgp&#39;</span><span class="p p-Indicator">},</span>
+        <span class="s">&#39;acqfunction_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;default&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;acq_str&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;ei&#39;</span><span class="p p-Indicator">},</span>
+        <span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+<p>Alternative acquisition optimization algorithms can also be specified, as follows:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tuner</span><span class="p">:</span>
+  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun-dev/tuun</span> <span class="c1"># PATHTUUN is the path where you have the source code of tuun</span>
+  <span class="nt">classFileName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">nni_tuner.py</span>
+    <span class="l l-Scalar l-Scalar-Plain">className</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">TuunTuner</span>
+    <span class="l l-Scalar l-Scalar-Plain">classArgs</span><span class="p p-Indicator">:</span>
+    <span class="nt">optimization_mode</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">minimize</span>
+    <span class="nt">tuun_config</span><span class="p">:</span> <span class="p p-Indicator">{</span>
+        <span class="s">&#39;seed&#39;</span><span class="p p-Indicator">:</span> <span class="nv">1234</span><span class="p p-Indicator">,</span>
+        <span class="s">&#39;backend&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;probo&#39;</span><span class="p p-Indicator">,</span>
+        <span class="c1">#&#39;model_config&#39;: {&#39;name&#39;: &#39;standistmatgp&#39;}, # for Stan model</span>
+        <span class="s">&#39;acqfunction_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;default&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;acq_str&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;ei&#39;</span><span class="p p-Indicator">},</span>
+        <span class="s">&#39;acqoptimizer_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;neldermead&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;n_init_rs&#39;</span><span class="p p-Indicator">:</span> <span class="nv">5</span><span class="p p-Indicator">},</span> <span class="c1"># Nelder-Mead algorithm with 5 initial uniform random samples</span>
+        <span class="p p-Indicator">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-started">
+<h2>Get started<a class="headerlink" href="#get-started" title="Permalink to this headline">¶</a></h2>
+<p>After downloading the source code of Tuun to the specific directory, you only need to change the python path by:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export PYTHONPATH=&lt;$PATHTUUN&gt; # PATHTUUN is the path where you have the source code of Tuun</span>
+</pre></div>
+</div>
+<p>Currently in the training code, we follow the NNI examples to report the results and read the hyperparameters in each trial (<a class="reference external" href="https://nni.readthedocs.io/en/stable/TrialExample/Trials.html">link</a>). In our above example, for reading hyperparameters in each trial you can do:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hypers_dict</span> <span class="o">=</span> <span class="n">nni</span><span class="o">.</span><span class="n">get_next_parameter</span><span class="p">()</span>
+<span class="n">hypers_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hypers_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="n">params</span><span class="p">[</span><span class="s1">&#39;bert_model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hypers_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>   <span class="c1"># params is a dict that stores all the hyperparameters</span>
+<span class="n">params</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hypers_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>With this modification, you can follow the <a class="reference external" href="https://nni.readthedocs.io/en/stable/Tutorial/QuickStart.html">guidelines of NNI</a> to launch the full
+experiment.</p>
+</div>
+<div class="section" id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="examples/index.html" class="btn btn-neutral float-right" title="Tuun Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="configure.html" class="btn btn-neutral float-left" title="Configure Components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, The Tuun Authors
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
