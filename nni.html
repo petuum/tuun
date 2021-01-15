@@ -107,6 +107,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#get-started">Get started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -198,15 +199,15 @@ to the NNI environment.</p>
 <code class="code docutils literal notranslate"><span class="pre">classArgs</span></code> field with several default arguments (e.g., <code class="code docutils literal notranslate"><span class="pre">optimization_mode</span></code>)
 as specified in the built-in tuners/advisors in <a class="reference external" href="https://nni.readthedocs.io/en/latest/Overview.html">NNI</a>. When using Tuun with NNI,
 instead of specifying a domain specification or search space with Tuun, we specify the
-range/specification of hyperparameters in a file <code class="code docutils literal notranslate"><span class="pre">search_space.json</span></code>. Please
-see <a class="reference external" href="https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html">this link</a>
-for a more general instruction about how to set up this file.  Here is a working example
-of how configuration is set for one hyperparameter (e.g., learning rate) in the config
-file of NNI, which uses Tuun to optimize a function via Bayesian optimization with a
-Gaussian process (GP) model. Note that the only changes involve the tuner section in the
-config file.</p>
+range/specification of hyperparameters in a file <code class="code docutils literal notranslate"><span class="pre">search_space.json</span></code>. Please see
+<a class="reference external" href="https://nni.readthedocs.io/en/stable/Tutorial/SearchSpaceSpec.html">this link</a> for a
+more general instruction about how to set up this file.  Here is a working example of a
+configuration for a search spacing consisting of one hyperparameter (e.g. learning rate)
+in the config file of NNI, which uses Tuun to optimize a function via Bayesian
+optimization with a Gaussian process (GP) model. Note that the only changes involve the
+tuner section in the config file.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tuner</span><span class="p">:</span>
-  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun-dev/tuun</span> <span class="c1"># PATHTUUN is the path where you have the source code of tuun</span>
+  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun</span> <span class="c1"># PATHTUUN is the path to the Tuun repo</span>
   <span class="nt">classFileName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">nni_tuner.py</span>
     <span class="l l-Scalar l-Scalar-Plain">className</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">TuunTuner</span>
     <span class="l l-Scalar l-Scalar-Plain">classArgs</span><span class="p p-Indicator">:</span>
@@ -221,7 +222,7 @@ config file.</p>
 <p>To configure Tuun to use a Stan model, you can instead using the following in the tuner
 section:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tuner</span><span class="p">:</span>
-  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun-dev/tuun</span> <span class="c1"># PATHTUUN is the path where you have the source code of tuun</span>
+  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun</span> <span class="c1"># PATHTUUN is the path to the Tuun repo</span>
   <span class="nt">classFileName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">nni_tuner.py</span>
     <span class="l l-Scalar l-Scalar-Plain">className</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">TuunTuner</span>
     <span class="l l-Scalar l-Scalar-Plain">classArgs</span><span class="p p-Indicator">:</span>
@@ -229,14 +230,14 @@ section:</p>
     <span class="nt">tuun_config</span><span class="p">:</span> <span class="p p-Indicator">{</span>
         <span class="s">&#39;seed&#39;</span><span class="p p-Indicator">:</span> <span class="nv">1234</span><span class="p p-Indicator">,</span>
         <span class="s">&#39;backend&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;probo&#39;</span><span class="p p-Indicator">,</span>
-        <span class="s">&#39;model_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;standistmatgp&#39;</span><span class="p p-Indicator">},</span>
+        <span class="s">&#39;model_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;standistmatgp&#39;</span><span class="p p-Indicator">},</span> <span class="c1"># for Stan model</span>
         <span class="s">&#39;acqfunction_config&#39;</span><span class="p p-Indicator">:</span> <span class="p p-Indicator">{</span><span class="s">&#39;name&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;default&#39;</span><span class="p p-Indicator">,</span> <span class="s">&#39;acq_str&#39;</span><span class="p p-Indicator">:</span> <span class="s">&#39;ei&#39;</span><span class="p p-Indicator">},</span>
         <span class="p p-Indicator">}</span>
 </pre></div>
 </div>
-<p>Alternative acquisition optimization algorithms can also be specified, as follows:</p>
+<p>Alternative acquisition optimization algorithms can also be specified as follows:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tuner</span><span class="p">:</span>
-  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun-dev/tuun</span> <span class="c1"># PATHTUUN is the path where you have the source code of tuun</span>
+  <span class="nt">codeDir</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">$PATHTUUN/tuun</span> <span class="c1"># PATHTUUN is the path to the Tuun repo</span>
   <span class="nt">classFileName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">nni_tuner.py</span>
     <span class="l l-Scalar l-Scalar-Plain">className</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">TuunTuner</span>
     <span class="l l-Scalar l-Scalar-Plain">classArgs</span><span class="p p-Indicator">:</span>
@@ -257,7 +258,9 @@ section:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export PYTHONPATH=&lt;$PATHTUUN&gt; # PATHTUUN is the path where you have the source code of Tuun</span>
 </pre></div>
 </div>
-<p>Currently in the training code, we follow the NNI examples to report the results and read the hyperparameters in each trial (<a class="reference external" href="https://nni.readthedocs.io/en/stable/TrialExample/Trials.html">link</a>). In our above example, for reading hyperparameters in each trial you can do:</p>
+<p>Currently in the training code, we follow the NNI examples to report the results and
+read the hyperparameters in each trial (<a class="reference external" href="https://nni.readthedocs.io/en/stable/TrialExample/Trials.html">link</a>). In our above
+example, for reading hyperparameters in each trial you can do:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hypers_dict</span> <span class="o">=</span> <span class="n">nni</span><span class="o">.</span><span class="n">get_next_parameter</span><span class="p">()</span>
 <span class="n">hypers_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hypers_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 <span class="n">params</span><span class="p">[</span><span class="s1">&#39;bert_model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hypers_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>   <span class="c1"># params is a dict that stores all the hyperparameters</span>
@@ -266,6 +269,11 @@ section:</p>
 </div>
 <p>With this modification, you can follow the <a class="reference external" href="https://nni.readthedocs.io/en/stable/Tutorial/QuickStart.html">guidelines of NNI</a> to launch the full
 experiment.</p>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>For full code examples showing the use of Tuun in NNI, see the <code class="code docutils literal notranslate"><span class="pre">nni_*</span></code> directories
+<a class="reference external" href="https://github.com/petuum/tuun/tree/master/examples">here</a>.</p>
 </div>
 <div class="section" id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline">¶</a></h2>

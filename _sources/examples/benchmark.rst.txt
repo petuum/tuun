@@ -61,9 +61,9 @@ function. The full code for this example can be `found here
 The plots below show a couple examples of Tuun, along with other tuning algorithms, on
 the above benchmark functions.
 
-.. image:: ../images/hartmann6.png
+.. image:: ../images/hartmann6.svg
    :width: 300
    :alt: Hartmann6 benchmark function
-.. image:: ../images/branin40.png
+.. image:: ../images/branin40.svg
    :width: 300
    :alt: Hartmann6 benchmark function
