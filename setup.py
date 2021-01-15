@@ -49,7 +49,7 @@ if __name__ == "__main__":
         author="The Tuun Authors",
         author_email="willie.neiswanger@petuum.com",
         description="Hyperparameter tuning via uncertainty modeling",
-        url="https://github.com/petuum/tuun-dev",
+        url="https://github.com/petuum/tuun",
         classifiers=classifiers,
         packages=setuptools.find_packages(include=["tuun",
                                                    "tuun.*"]),
