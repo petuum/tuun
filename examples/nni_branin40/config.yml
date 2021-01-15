@@ -8,20 +8,16 @@ trainingServicePlatform: local
 searchSpacePath: search_space.json
 #choice: true, false
 useAnnotation: false
-#tuner:
-  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
-  ##SMAC (SMAC should be installed through nnictl)
-  #builtinTunerName: TPE
-  #classArgs:
-    ##choice: maximize, minimize
-    #optimize_mode: maximize
+# NNI custom tuner configuration
 tuner:
-  codeDir: /home/ubuntu/proj/tuun-dev/tuun
+  # Set path to Tuun
+  codeDir: /home/ubuntu/proj/tuun/tuun
   classFileName: nni_tuner.py
   className: TuunTuner
   # Any parameter need to pass to your tuner class __init__ constructor
   # can be specified in this optional classArgs field, for example
   classArgs:
+    #choice: minimize, maximize
     optimize_mode: minimize
     tuun_config: {
         'seed': 11,
