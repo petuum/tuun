@@ -102,9 +102,9 @@ functions, different types of search spaces, and use within NNI.
 The plots below show a couple examples of Tuun, along with other tuning algorithms, on
 benchmark functions.
 <p align="center">
-    <img src="docs/images/hartmann6.png" alt="Hartmann 6 Dimensions" width="48%">
+    <img src="docs/images/hartmann6.svg" alt="Hartmann 6 Dimensions" width="48%">
     &nbsp; &nbsp;
-    <img src="docs/images/branin40.png" alt="Branin 40 Dimensions" width="48%">
+    <img src="docs/images/branin40.svg" alt="Branin 40 Dimensions" width="48%">
 </p>
 
 
