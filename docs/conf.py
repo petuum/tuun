@@ -54,7 +54,7 @@ html_theme = 'sphinx_rtd_theme'
 # Register the theme as an extension to generate a sitemap.xml
 extensions.append("sphinx_rtd_theme")
 # logo
-html_logo = 'images/tuun_logo_space.png'
+html_logo = 'images/tuun_logo.svg'
 html_favicon = 'images/tuun_logo_only.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
