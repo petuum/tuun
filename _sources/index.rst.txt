@@ -4,7 +4,11 @@ Tuun Documentation
 **Tuun** is a toolkit for efficient hyperparameter tuning via uncertainty modeling, with a
 focus on flexible model choice, scalability, and use in distributed settings.
 
-The code for Tuun is `on github <https://github.com/petuum/tuun>`_.
+|github| The code for Tuun is `on github <https://github.com/petuum/tuun>`_.
+
+.. |github| image:: images/github.svg
+   :width: 30
+   :alt: github
 
 
 User Guide
