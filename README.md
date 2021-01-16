@@ -31,8 +31,9 @@ $ python tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
 **Note:** Tuun is still in the early stages and the following API and functionality may
 undergo changes.
 
-Here is a minimal working example, which uses Tuun to optimize a function over a
-one-dimensional Euclidean search space with bounds [-5, 5].
+[Here](examples/quick_start/minimize_01.py) is a minimal working example, which uses
+Tuun to optimize a function over a one-dimensional Euclidean search space with bounds
+[-5, 5].
 
 ```python
 from tuun.main import Tuun
@@ -55,7 +56,7 @@ page](https://petuum.github.io/tuun/search_space.html) for more details on defin
 different search spaces for Tuun.
 
 Tuun also allows for fine-grained configuration of individual components and search
-spaces.
+spaces, as shown in the [example](examples/quick_start/minimize_11.py) below.
 
 ```python
 from tuun.main import Tuun
@@ -84,6 +85,8 @@ result = tu.minimize_function(f, 20)
 This should also find a minima at roughly: 𝑥\*=[−0.73], where 𝑓(𝑥\*)=−0.32. See [this
 docs page](https://petuum.github.io/tuun/configure.html) for more details on possible
 configurations.
+
+[See here](examples/quick_start/) for a larger set of quick start examples for Tuun.
 
 
 ## Use in NNI
