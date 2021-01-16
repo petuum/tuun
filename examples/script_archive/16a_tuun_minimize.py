@@ -8,6 +8,7 @@ tu = Tuun(config)
 
 # Update Tuun using set_config_from_search_space_list
 #search_space_list = [('real', [[-20, 20]])]
+#search_space_list = [('real', [[-20, 20]]), ('list', ['a', 'b', 'c', 'd', 'e'])]
 search_space_list = [('real', [[-20, 20]]), ('list', ['a', 'b', 'c', 'd', 'e'])]
 #search_space_list = [('real', [[-20, 20]]), ('list', ['a', 'b', 'c', 'd', 'e']), ('list', ['a', 'b', 'c', 'd', 'e'])]
 #search_space_list = [('real', [[-40, 40]]), ('list', ['a', 'b', 'c', 'd', 'e'])]
