@@ -3,6 +3,7 @@ Main interface for Tuun.
 """
 from argparse import Namespace
 import numpy as np
+import copy
 
 from .backend import ProboBackend, DragonflyBackend
 
@@ -334,14 +335,14 @@ class Tuun:
             If not None, set the random seed to seed.
         """
         self._set_seed(seed=seed)
-        data = self._format_initial_data(data)
+        data_backend = copy.copy(self._format_initial_data(data))
 
         # Set data-dependent subseed
-        subseed = int(np.random.uniform(12345 * (len(data.x) + 1)))
+        subseed = int(np.random.uniform(12345 * (len(data_backend.x) + 1)))
 
         # Call backend suggest_to_minimize method
         suggestion = self.backend.suggest_to_minimize(
-            data=data, verbose=verbose, seed=subseed
+            data=data_backend, verbose=verbose, seed=subseed
         )
 
         return suggestion
@@ -359,9 +360,9 @@ class Tuun:
         seed : int
             If not None, set the random seed to seed.
         """
-        data = self._format_initial_data(data)
-        data.y = [-1*v for v in data.y]
-        suggestion = self.suggest_to_minimize(data, verbose, seed)
+        data_backend = copy.copy(self._format_initial_data(data))
+        data_backend.y = [-1*v for v in data_backend.y]
+        suggestion = self.suggest_to_minimize(data_backend, verbose, seed)
         return suggestion
 
     def minimize_function(
