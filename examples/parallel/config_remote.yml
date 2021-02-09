@@ -1,0 +1,42 @@
+authorName: default
+experimentName: example_mnist_pytorch
+trialConcurrency: 4
+maxExecDuration: 1h
+nniManagerIp: {You_Local_Host_Ip}
+maxTrialNum: 10
+#choice: local, remote, pai
+trainingServicePlatform: remote
+searchSpacePath: search_space.json
+#choice: true, false
+useAnnotation: false
+tuner:
+  #choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  #SMAC (SMAC should be installed through nnictl)
+  builtinTunerName: TPE
+  classArgs:
+    #choice: maximize, minimize
+    optimize_mode: maximize
+trial:
+  command: python3 mnist.py
+  codeDir: .
+  gpuNum: 1
+machineList:
+  - ip: {Node1_Ip}
+    username: {node1_username}
+    passwd: {node1_pwd}
+    ## a preCommand run in each node to activate the virtual environment
+    preCommand: source {virtualenv_path_in_node1}/bin/activate
+    useActiveGpu: true
+    maxTrialNumPerGpu: 1
+  - ip: {Node2_Ip}
+    username: {node2_username}
+    passwd: {node2_pwd}
+    preCommand: source {virtualenv_path_in_node2}/bin/activate
+    useActiveGpu: true
+    maxTrialNumPerGpu: 1
+#
+#remoteConfig:
+#  reuse: true
+# localConfig:
+#   maxTrialNumPerGpu: 1
+#   useActiveGpu: true

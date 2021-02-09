@@ -1,0 +1,32 @@
+authorName: default
+experimentName: example_mnist_pytorch
+trialConcurrency: 2
+maxExecDuration: 1h
+maxTrialNum: 10
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space1.json
+#choice: true, false
+useAnnotation: false
+tuner:
+  # Set path to Tuun
+  codeDir: /home/ubuntu/proj/tuun/tuun
+  classFileName: nni_tuner.py
+  className: TuunTuner
+  # Any parameter need to pass to your tuner class __init__ constructor
+  # can be specified in this optional classArgs field, for example
+  classArgs:
+    #choice: minimize, maximize
+    optimize_mode: maximize
+    tuun_config: {
+        'seed': 11,
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
+        'model_config': {'name': 'standistmatgp'},
+    } 
+trial:
+  command: python3 mnist.py
+  codeDir: .
+  gpuNum: 1
+localConfig:
+  maxTrialNumPerGpu: 1
+  useActiveGpu: true
