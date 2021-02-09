@@ -1,11 +1,3 @@
-<p align="center"><img src="docs/images/tuun_logo.svg" width=280 /></p>
-
-<p align="center">
-    &emsp;&emsp;
-    <a href="https://petuum.github.io/tuun">Documentation</a> and
-    <a href="https://github.com/petuum/tuun/tree/master/examples">Examples</a>
-</p>
-
 This repo gives an example as well as instruction about how to run **NNI** with **Tuun** in parallel. As other tuners, it is very straightforward to run Tuun in NNI for parallel tuning. The user just needs to follow NNI instruction and we still provide examples with mnist-pytorch for how to run it in parallel. 
 
 
