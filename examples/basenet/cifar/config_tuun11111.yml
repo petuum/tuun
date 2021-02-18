@@ -1,0 +1,41 @@
+authorName: default
+experimentName: example_pytorch_cifar10
+trialConcurrency: 1
+maxExecDuration: 100h
+maxTrialNum: 60
+#choice: local, remote, pai
+trainingServicePlatform: local
+searchSpacePath: search_space1.json
+#choice: true, false
+useAnnotation: false
+#tuner:
+  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
+  ##SMAC (SMAC should be installed through nnictl)
+  #builtinTunerName: TPE
+  #classArgs:
+    ##choice: maximize, minimize
+    #optimize_mode: minimize
+tuner:
+  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
+  classFileName: nni_tuner.py
+  className: TuunTuner
+  # Any parameter need to pass to your tuner class __init__ constructor
+  # can be specified in this optional classArgs field, for example
+  classArgs:
+    optimize_mode: maximize
+    tuun_config: {
+        'seed': 11111,
+        'model_config': {'name': 'standistmatgp'},
+        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
+        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
+        'probo_config': {'normalize_real': True},
+    } 
+  gpuIndices: '1'
+
+trial:
+  command: python3 main1.py
+  codeDir: .
+  gpuNum: 1
+localConfig:
+  maxTrialNumPerGpu:  1
+  useActiveGpu: true

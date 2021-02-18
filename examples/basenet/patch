@@ -1,0 +1,4339 @@
+From 773f3abb0cb26f6bea10bea730f8737e952804ff Mon Sep 17 00:00:00 2001
+From: Zeya Wang <zeya.wang@petuum.com>
+Date: Fri, 12 Feb 2021 12:28:47 -0500
+Subject: [PATCH] basenet tuun
+
+---
+ README.md                                     |  26 ++
+ basenet/__init__.py                           |  11 +
+ basenet/basenet.py                            | 336 +++++++++++++++++++++++
+ basenet/data.py                               |  28 ++
+ basenet/helpers.py                            | 116 ++++++++
+ basenet/hp_schedule.py                        | 378 ++++++++++++++++++++++++++
+ basenet/text/__init__.py                      |   3 +
+ basenet/text/data.py                          |  64 +++++
+ basenet/vision/__init__.py                    |   4 +
+ basenet/vision/layers.py                      |  30 ++
+ basenet/vision/transforms.py                  | 103 +++++++
+ examples/cifar/augment.py                     | 123 +++++++++
+ examples/cifar/auto_config_tuun.yml           |  41 +++
+ examples/cifar/auto_search_space.json         |  32 +++
+ examples/cifar/automain.py                    | 283 +++++++++++++++++++
+ examples/cifar/cifar10.py                     | 226 +++++++++++++++
+ examples/cifar/config.yml                     |  26 ++
+ examples/cifar/config_random.yml              |  26 ++
+ examples/cifar/config_tuun.yml                |  41 +++
+ examples/cifar/config_tuun1.yml               |  41 +++
+ examples/cifar/config_tuun11.yml              |  41 +++
+ examples/cifar/config_tuun111.yml             |  41 +++
+ examples/cifar/config_tuun1111.yml            |  41 +++
+ examples/cifar/config_tuun11111.yml           |  41 +++
+ examples/cifar/main.py                        | 251 +++++++++++++++++
+ examples/cifar/main1.py                       | 251 +++++++++++++++++
+ examples/cifar/run.py                         |  42 +++
+ examples/cifar/run.sh                         |  10 +
+ examples/cifar/run2.py                        |  40 +++
+ examples/cifar/search_space.json              |   7 +
+ examples/cifar/search_space1.json             |   7 +
+ examples/dawn/basenet.json                    |  23 ++
+ examples/dawn/basenet_dawn.tsv                |  41 +++
+ examples/dev/cifar_distill/cifar10_distill.py | 268 ++++++++++++++++++
+ examples/dev/cifar_distill/cmd.sh             |  61 +++++
+ examples/dev/cifar_distill/make_commands.py   |  26 ++
+ examples/dev/cifar_distill/run.sh             |   9 +
+ examples/dev/cifar_opt/cifar_opt.py           | 249 +++++++++++++++++
+ examples/dev/cifar_opt/cifar_opt2.py          | 270 ++++++++++++++++++
+ examples/dev/cifar_opt/run.sh                 |   7 +
+ examples/nbsgd/nbsgd.py                       | 163 +++++++++++
+ examples/nbsgd/prep.py                        |  96 +++++++
+ examples/nbsgd/run.sh                         |  18 ++
+ examples/plot.py                              |  37 +++
+ requirements.txt                              |   2 +
+ setup.py                                      |  15 +
+ 46 files changed, 3995 insertions(+)
+
+diff --git a/README.md b/README.md
+new file mode 100755
+index 0000000000000000000000000000000000000000..b80433838efc0ce3c60ec8f9b4202930ea876ca0
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,26 @@
++#### basenet
++
++Classes wrapping basic `pytorch` functionality.
++  
++  - Train for an epoch
++  - Eval for an epoch
++  - Predict
++  - Learning rate schedules
++
++##### Installation
++
++```
++conda create -n basenet4_env python=3.6 pip -y
++source activate basenet4_env
++
++pip install -r requirements.txt
++conda install -y pytorch torchvision cuda90 -c pytorch
++pip install -e .
++```
++
++#### Examples
++
++```
++cd examples/cifar
++./run.sh
++```
+\ No newline at end of file
+diff --git a/basenet/__init__.py b/basenet/__init__.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..52b67d5cd0dec97cead2a5bef683292c20c50749
+--- /dev/null
++++ b/basenet/__init__.py
+@@ -0,0 +1,11 @@
++from __future__ import absolute_import
++
++from .basenet import BaseNet, BaseWrapper, Metrics
++from .hp_schedule import HPSchedule
++from . import helpers
++from . import text
++
++try:
++    from . import vision
++except:
++    pass
+\ No newline at end of file
+diff --git a/basenet/basenet.py b/basenet/basenet.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..4e3f526dd7a48e41d96c0bbbf8313d9c99c7ac88
+--- /dev/null
++++ b/basenet/basenet.py
+@@ -0,0 +1,336 @@
++#!/usr/bin/env python
++
++"""
++    basenet.py
++"""
++
++from __future__ import print_function, division, absolute_import
++
++import sys
++import numpy as np
++from tqdm import tqdm
++from copy import deepcopy
++import warnings
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++from torch.autograd import Variable
++
++from .helpers import to_numpy, to_device
++from .hp_schedule import HPSchedule
++
++TORCH_VERSION_3 = '0.3' == torch.__version__[:3]
++
++# --
++# Helpers
++
++def _set_train(x, mode):
++    # !! Do we want to always turn off `training` mode when the layer is frozen?
++    x.training = False if getattr(x, 'frozen', False) else mode
++    for module in x.children():
++        _set_train(module, mode)
++    
++    return x
++
++
++def _clip_grad_norm(params, clip_grad_norm):
++    clip_fn = torch.nn.utils.clip_grad_norm_ if not TORCH_VERSION_3 else torch.nn.utils.clip_grad_norm
++    for p in params:
++        if isinstance(p, dict):
++            clip_fn(p['params'], clip_grad_norm)
++        else:
++            clip_fn(p, clip_grad_norm)
++
++
++class Metrics:
++    @staticmethod
++    def n_correct(output, target):
++        if isinstance(output, tuple) or isinstance(output, list):
++            output = output[0]
++        if isinstance(target, tuple) or isinstance(output, list):
++            target = target[0]
++        
++        correct = (output.max(dim=-1)[1] == target).long().sum()
++        return int(correct), int(target.shape[0])
++
++# --
++# Model
++
++class BaseNet(nn.Module):
++    
++    def __init__(self, loss_fn=F.cross_entropy, verbose=False):
++        super().__init__()
++        
++        self.loss_fn = loss_fn
++        
++        self.opt          = None
++        self.hp_scheduler = None
++        self.hp           = None
++        
++        self.progress = 0
++        self.epoch    = 0
++        
++        self.verbose = verbose
++        self.device = None
++    
++    def to(self, device=None):
++        self.device = device
++        if not TORCH_VERSION_3:
++            super().to(device=device)
++        else:
++            if device == 'cuda':
++                self.cuda()
++            elif device == 'cpu':
++                self.cpu()
++            else:
++                raise Exception
++        
++        return self
++    
++    def deepcopy(self):
++        _device = self.device
++        del self.device
++        new_self = deepcopy(self).to(_device)
++        self.device = _device
++        return new_self
++    
++    # --
++    # Optimization
++    
++    def _filter_requires_grad(self, params):
++        # User shouldn't be passing variables that don't require gradients
++        if isinstance(params[0], dict):
++            check = np.all([np.all([pp.requires_grad for pp in p['params']]) for p in params]) 
++        else:
++            check = np.all([p.requires_grad for p in params])
++        
++        if not check:
++            warnings.warn((
++                'BaseNet.init_optimizer: some variables do not require gradients. '
++                'Ignoring them, but better to handle explicitly'
++            ), RuntimeWarning)
++        
++        return params
++    
++    def init_optimizer(self, opt, params, hp_scheduler=None, clip_grad_norm=0, **kwargs):
++        params = list(params)
++        
++        self.clip_grad_norm = clip_grad_norm
++        self.hp_scheduler = hp_scheduler
++        
++        if hp_scheduler is not None:
++            for hp_name, scheduler in hp_scheduler.items():
++                assert hp_name not in kwargs.keys(), '%s in kwargs.keys()' % hp_name
++                kwargs[hp_name] = scheduler(0)
++        
++        self.params = self._filter_requires_grad(params)
++        self.opt = opt(self.params, **kwargs)
++        self.set_progress(0)
++    
++    def set_progress(self, progress):
++        self.progress = progress
++        self.epoch = np.floor(progress)
++        
++        if self.hp_scheduler is not None:
++            self.hp = dict([(hp_name, scheduler(progress)) for hp_name,scheduler in self.hp_scheduler.items()])
++            HPSchedule.set_hp(self.opt, self.hp)
++    
++    # --
++    # Training states
++    
++    def train(self, mode=True):
++        """ have to override this function to allow more finegrained control """
++        return _set_train(self, mode=mode)
++    
++    # --
++    # Batch steps
++    
++    def train_batch(self, data, target, metric_fns=None, forward=None):
++        assert self.opt is not None, "BaseNet: self.opt is None"
++        assert self.loss_fn is not None, 'BaseNet: self.loss_fn is None'
++        assert self.training, 'BaseNet: self.training == False'
++        if forward is None:
++            forward = self.forward
++        
++        self.opt.zero_grad()
++        
++        if TORCH_VERSION_3:
++            data, target = Variable(data), Variable(target)
++        
++        data, target = to_device(data, self.device), to_device(target, self.device)
++        
++        output = forward(data)
++        loss = self.loss_fn(output, target)
++        loss.backward()
++        
++        if self.clip_grad_norm > 0:
++            _clip_grad_norm(self.params, self.clip_grad_norm)
++        
++        self.opt.step()
++        
++        metrics = [m(output, target) for m in metric_fns] if metric_fns is not None else []
++        return float(loss), metrics
++    
++    def eval_batch(self, data, target, metric_fns=None, forward=None):
++        assert not self.training, 'BaseNet: self.training == True'
++        if forward is None:
++            forward = self.forward
++        
++        def _eval(data, target, metric_fns):
++            data, target = to_device(data, self.device), to_device(target, self.device)
++            
++            output = forward(data)
++            loss = self.loss_fn(output, target)
++            
++            metrics = [m(output, target) for m in metric_fns] if metric_fns is not None else []
++            return float(loss), metrics
++        
++        if not TORCH_VERSION_3:
++            with torch.no_grad():
++                return _eval(data, target, metric_fns)
++        else:
++            data, target = Variable(data, volatile=True), Variable(target, volatile=True)
++            return _eval(data, target, metric_fns)
++    
++    # --
++    # Epoch steps
++    
++    def _run_epoch(self, dataloaders, mode, batch_fn, set_progress, desc, num_batches=np.inf, compute_acc=False, metric_fns=None):
++        metric_fns = metric_fns if metric_fns is not None else []
++        if compute_acc:
++            warnings.warn((
++                'BaseNet._run_epoch: use `metric_fns=["n_correct"]` instead of `compute_acc=True`'
++            ), RuntimeWarning)
++            metric_fns.append('n_correct')
++        
++        compute_acc = 'n_correct' in metric_fns
++        metric_fns = [getattr(Metrics, m) for m in metric_fns]
++        
++        loader = dataloaders[mode]
++        if loader is None:
++            return None
++        else:
++            gen = enumerate(loader)
++            if self.verbose:
++                gen = tqdm(gen, total=len(loader), desc='%s:%s' % (desc, mode))
++            
++            if hasattr(self, 'reset'):
++                self.reset()
++            
++            correct, total, loss_hist = 0, 0, [None] * min(num_batches, len(loader))
++            for batch_idx, (data, target) in gen:
++                if batch_idx >= num_batches:
++                    break
++                
++                if set_progress:
++                    self.set_progress(self.epoch + batch_idx / len(loader))
++                
++                loss, metrics = batch_fn(data, target, metric_fns=metric_fns)
++                
++                loss_hist[batch_idx] = loss
++                if compute_acc:
++                    correct += metrics[0][0]
++                    total   += metrics[0][1]
++                
++                if self.verbose:
++                    gen.set_postfix(**{
++                        "acc"  : correct / total if compute_acc else -1.0,
++                        "loss" : loss,
++                    })
++            
++            if self.verbose:
++                gen.set_postfix(**{
++                    "acc"          : correct / total if compute_acc else -1.0,
++                    "last_10_loss" : np.mean(loss_hist[-10:]),
++                })
++            
++            if set_progress:
++                self.epoch += 1
++            
++            return {
++                "acc"  : float(correct / total) if compute_acc else -1.0,
++                "loss" : list(map(float, loss_hist)),
++            }
++    
++    def train_epoch(self, dataloaders, mode='train', **kwargs):
++        assert self.opt is not None, "BaseNet: self.opt is None"
++        _ = self.train()
++        return self._run_epoch(
++            dataloaders=dataloaders,
++            mode=mode,
++            batch_fn=self.train_batch,
++            set_progress=True,
++            desc="train_epoch",
++            **kwargs,
++        )
++        
++    def eval_epoch(self, dataloaders, mode='val', **kwargs):
++        _ = self.eval()
++        return self._run_epoch(
++            dataloaders=dataloaders,
++            mode=mode,
++            batch_fn=self.eval_batch,
++            set_progress=False,
++            desc="eval_epoch",
++            **kwargs,
++        )
++    
++    def predict(self, dataloaders, mode='val'):
++        _ = self.eval()
++        
++        all_output, all_target = [], []
++        
++        loader = dataloaders[mode]
++        if loader is None:
++            return None
++        else:
++            gen = enumerate(loader)
++            if self.verbose:
++                gen = tqdm(gen, total=len(loader), desc='predict:%s' % mode)
++            
++            if hasattr(self, 'reset'):
++                self.reset()
++            
++            for _, (data, target) in gen:
++                if not TORCH_VERSION_3:
++                    with torch.no_grad():
++                        output = self(to_device(data, self.device)).cpu()
++                else:
++                    data = Variable(data, volatile=True)
++                    output = self(to_device(data, self.device)).cpu()
++                
++                all_output.append(output)
++                all_target.append(target)
++        
++        return torch.cat(all_output), torch.cat(all_target)
++    
++    def save(self, outpath):
++        torch.save(self.state_dict(), outpath)
++    
++    def load(self, inpath):
++        self.load_state_dict(torch.load(inpath))
++    
++    def save_checkpoint(self, outpath):
++        ckpt = {
++            "model_state_dict" : self.state_dict(),
++            "opt_state_dict"   : self.opt.state_dict(),
++            "epoch"            : self.epoch,
++        }
++        torch.save(ckpt, outpath)
++    
++    def load_checkpoint(self, inpath):
++        ckpt = torch.load(inpath, map_location=self.device)
++        self.load_state_dict(ckpt['model_state_dict'])
++        self.opt.load_state_dict(ckpt['opt_state_dict'])
++        self.set_progress(ckpt['epoch'])
++
++
++class BaseWrapper(BaseNet):
++    def __init__(self, net=None, **kwargs):
++        super().__init__(**kwargs)
++        self.net = net
++    
++    def forward(self, x):
++        return self.net(x)
++
+diff --git a/basenet/data.py b/basenet/data.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..e3355e4b2a9d7d36733f3e090b247ca86fb31034
+--- /dev/null
++++ b/basenet/data.py
+@@ -0,0 +1,28 @@
++#!/usr/bin/env python
++
++"""
++  data.py
++"""
++
++import itertools
++
++def loopy_wrapper(gen):
++    while True:
++        for x in gen:
++            yield x
++
++
++class ZipDataloader:
++    def __init__(self, dataloaders):
++        self.dataloaders = dataloaders
++        self._len = len(dataloaders[0])
++    
++    def __len__(self):
++        return self._len
++        
++    def __iter__(self):
++        counter = 0
++        iters = [loopy_wrapper(d) for d in self.dataloaders]
++        while counter < len(self):
++            yield tuple(zip(*[next(it) for it in iters]))
++            counter += 1
+diff --git a/basenet/helpers.py b/basenet/helpers.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..cc573ad94cc15ffcc9471cbb47599c02730b3fe8
+--- /dev/null
++++ b/basenet/helpers.py
+@@ -0,0 +1,116 @@
++#!/usr/bin/env python
++
++"""
++    helpers.py
++"""
++
++from __future__ import print_function, division
++
++import random
++import numpy as np
++from functools import reduce
++
++import torch
++from torch import nn
++from torch.autograd import Variable
++
++TORCH_VERSION_3  = '0.3' == torch.__version__[:3]
++
++# --
++# Utils
++
++def set_seeds(seed=100):
++    _ = np.random.seed(seed)
++    _ = torch.manual_seed(seed + 123)
++    _ = torch.cuda.manual_seed(seed + 456)
++    _ = random.seed(seed + 789)
++
++
++def to_device(x, device):
++    assert device is not None, "basenet.helpers.to_device: device is None"
++    if not TORCH_VERSION_3:
++        if isinstance(x, tuple) or isinstance(x, list):
++            return [xx.to(device) for xx in x]
++        else:
++            return x.to(device)
++    else:
++        if device == 'cuda':
++            return x.cuda()
++        elif device == 'cpu':
++            return x.cpu()
++        else:
++            raise Exception
++
++
++if not TORCH_VERSION_3:
++    def to_numpy(x):
++        if type(x) in [list, tuple]:
++            return [to_numpy(xx) for xx in x]
++        elif type(x) in [np.ndarray, float, int]:
++            return x
++        elif x.requires_grad:
++            return to_numpy(x.detach())
++        else:
++            if x.is_cuda:
++                return x.cpu().numpy()
++            else:
++                return x.numpy()
++else:
++    def to_numpy(x):
++        if type(x) in [np.ndarray, float, int]:
++            return x
++        elif isinstance(x, Variable):
++            return to_numpy(x.data)
++        else:
++            if x.is_cuda:
++                return x.cpu().numpy()
++            else:
++                return x.numpy()
++
++# --
++# From `fastai`
++
++def get_children(m):
++    return m if isinstance(m, (list, tuple)) else list(m.children())
++
++
++def set_freeze(x, mode):
++    x.frozen = mode
++    for p in x.parameters():
++        p.requires_grad = not mode
++    
++    for module in get_children(x):
++        set_freeze(module, mode)
++
++
++def apply_init(m, init_fn):
++    def _cond_init(m, init_fn):
++        if not isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
++            if hasattr(m, 'weight'):
++                init_fn(m.weight)
++            
++            if hasattr(m, 'bias'):
++                m.bias.data.fill_(0.)
++    
++    m.apply(lambda x: _cond_init(x, init_fn))
++
++
++def get_num_features(model):
++    children = get_children(model)
++    if len(children) == 0:
++        return None
++    
++    for layer in reversed(children):
++        if hasattr(layer, 'num_features'):
++            return layer.num_features
++        
++        res = get_num_features(layer)
++        if res is not None:
++            return res
++
++def parameters_from_children(x, only_requires_grad=False):
++    parameters = [list(c.parameters()) for c in get_children(x)]
++    parameters = sum(parameters, [])
++    if only_requires_grad:
++        parameters = [p for p in parameters if p.requires_grad]
++    return parameters
+\ No newline at end of file
+diff --git a/basenet/hp_schedule.py b/basenet/hp_schedule.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..aa38750ce39d0f8721b7a868f0f4f512e0de8d72
+--- /dev/null
++++ b/basenet/hp_schedule.py
+@@ -0,0 +1,378 @@
++#!/usr/bin/env python
++
++"""
++    hp_schedule.py
++    
++    Optimizer hyperparameter scheduler
++    
++    !! Most of the schedulers could be reimplemented as compound schedules (prod or cat)
++"""
++
++from __future__ import print_function, division
++
++import sys
++import copy
++import warnings
++import numpy as np
++from tqdm import tqdm
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++from torch.autograd import Variable
++
++# --
++# Helpers
++
++def power_sum(base, k):
++    return (base ** (k + 1) - 1) / (base - 1)
++
++
++def inv_power_sum(x, base):
++    return np.log(x * (base - 1) + 1) / np.log(base) - 1
++
++
++def linterp(x, start_x, end_x, start_y, end_y):
++    return start_y + (x - start_x) / (end_x - start_x) * (end_y - start_y)
++
++
++def _set_hp(optimizer, hp_name, hp_hp):
++    num_param_groups = len(list(optimizer.param_groups))
++    
++    if isinstance(hp_hp, float):
++        hp_hp = [hp_hp] * num_param_groups
++    else:
++        assert len(hp_hp) == num_param_groups, ("len(%s) != num_param_groups" % hp_name)
++    
++    for i, param_group in enumerate(optimizer.param_groups):
++        param_group[hp_name] = hp_hp[i]
++
++def maybe_warn_kwargs(kwargs):
++    if len(kwargs):
++        warnings.warn("\n\nHPSchedule: unused arguments:\n %s \n\n" % str(kwargs), RuntimeWarning)
++
++# --
++
++class HPSchedule(object):
++    
++    @staticmethod
++    def set_hp(optimizer, hp):
++        for hp_name, hp_hp in hp.items():
++            _set_hp(optimizer, hp_name, hp_hp)
++    
++    @staticmethod
++    def constant(hp_max=0.1, **kwargs):
++        maybe_warn_kwargs(kwargs)
++        def f(progress):
++            return hp_max
++        
++        return f
++    
++    @staticmethod
++    def step(hp_max=0.1, breaks=(150, 250), factors=(0.1, 0.1), epochs=None, repeat=True):
++        """ Step function learning rate annealing """
++        assert len(breaks) == len(factors)
++        breaks = np.array(breaks)
++        
++        def f(progress):
++            if repeat:
++                progress = progress % epochs
++            
++            return hp_max * np.prod(factors[:((progress >= breaks).sum())])
++        
++        return f
++    
++    @staticmethod
++    def linear(hp_max=0.1, epochs=None, repeat=True):
++        assert epochs is not None, "epochs is None"
++        
++        def f(progress):
++            """ Linear learning rate annealing """
++            
++            if repeat:
++                progress = progress % epochs
++            
++            return hp_max * (epochs - progress) / epochs
++        
++        return f
++    
++    @staticmethod
++    def cyclical(hp_max=0.1, epochs=None, period_length=1, repeat=True):
++        assert epochs is not None, "epochs is None"
++        
++        return HPSchedule.prod_schedule([
++            HPSchedule.stepify(HPSchedule.linear(epochs=epochs, hp_max=hp_max, repeat=repeat)),
++            HPSchedule.linear(epochs=period_length, hp_max=1, repeat=True),
++        ])
++    
++    @staticmethod
++    def linear_cycle(*args, **kwargs):
++        raise Exception('!! Renamed to one_cycle')
++    
++    @staticmethod
++    def one_cycle(hp_add=0.095, epochs=10, hp_init=0.0, hp_final=0.005, extra=5):
++    #def one_cycle(hp_max=0.1, epochs=10, hp_init=0.0, hp_final=0.005, extra=5):
++        def f(progress):
++            if progress < epochs / 2:
++                return 2 * (hp_final + hp_add) * (1 - (epochs - progress) / epochs)
++            elif progress <= epochs:
++                return hp_final + 2 * hp_add * (epochs - progress) / epochs
++            elif progress <= epochs + extra:
++                return hp_final * (extra - (progress - epochs)) / extra
++            else:
++                return hp_final / 10
++        
++        return f
++    
++    @staticmethod
++    def piecewise_linear(breaks, vals):
++        assert len(breaks) == len(vals)
++        
++        def _f(progress):
++            if progress < breaks[0]:
++                return vals[0]
++            
++            for i in range(1, len(breaks)):
++                if progress < breaks[i]:
++                    return linterp(progress, breaks[i - 1], breaks[i], vals[i - 1], vals[i])
++            
++            return vals[-1]
++        
++        def f(x):
++            if isinstance(x, list) or isinstance(x, np.ndarray):
++                return [_f(xx) for xx in x]
++            else:
++                return _f(x)
++        
++        return f
++    
++    @staticmethod
++    def sgdr(hp_max=0.1, period_length=50, hp_min=0, t_mult=1):
++        def f(progress):
++            """ SGDR learning rate annealing """
++            if t_mult > 1:
++                period_id = np.floor(inv_power_sum(progress / period_length, t_mult)) + 1
++                offsets = power_sum(t_mult, period_id - 1) * period_length
++                period_progress = (progress - offsets) / (t_mult ** period_id * period_length)
++            
++            else:
++                period_progress = (progress % period_length) / period_length
++            
++            return hp_min + 0.5 * (hp_max - hp_min) * (1 + np.cos(period_progress * np.pi))
++        
++        return f
++    
++    @staticmethod
++    def burnin_sgdr(hp_init=0.1, burnin_progress=0.15, burnin_factor=100):
++        sgdr = HPSchedule.sgdr(hp_init=hp_init, **kwargs)
++        
++        def f(progress):
++            """ SGDR learning rate annealing, w/ constant burnin period """
++            if progress < burnin_progress:
++                return hp_init / burnin_factor
++            else:
++                return sgdr(progress)
++        
++        return f
++    
++    @staticmethod
++    def exponential_increase(hp_init=0.1, hp_max=10, num_steps=100):
++        mult = (hp_max / hp_init) ** (1 / num_steps)
++        def f(progress):
++            return hp_init * mult ** progress
++            
++        return f
++    
++    # --
++    # Compound schedules
++    
++    @staticmethod
++    def stepify(fn):
++        def f(progress):
++            progress = np.floor(progress)
++            return fn(progress)
++        
++        return f
++    
++    @staticmethod
++    def prod_schedule(fns):
++        def f(progress):
++            return np.prod([fn(progress) for fn in fns], axis=0)
++        
++        return f
++        
++    @staticmethod
++    def cat_schedule(fns, breaks):
++        # !! Won't work w/ np.arrays
++        assert len(fns) - 1 == len(breaks)
++        
++        def f(progress):
++            assert (isinstance(progess, float) or isinstance(progress, int))
++            
++            if progress < breaks[0]:
++                return fns[0](progress)
++            
++            for i in range(1, len(breaks)):
++                if progress < breaks[i]:
++                    return fns[i-1](progress)
++            
++            return fns[-1](progress)
++        
++        return f
++
++# --
++# HP Finder
++
++class HPFind(object):
++    
++    @staticmethod
++    def find(model, dataloaders, hp_init=1e-5, hp_max=10, hp_mults=None, params=None, mode='train', smooth_loss=False):
++        assert mode in dataloaders, '%s not in loader' % mode
++        
++        # --
++        # Setup HP schedule
++        
++        if model.verbose:
++            print('HPFind.find: copying model', file=sys.stderr)
++        
++        model = model.deepcopy()
++        _ = model.train()
++        
++        if hp_mults is not None:
++            hp_init *= hp_mults
++            hp_max *= hp_mults # Correct?
++        
++        hp_scheduler = HPSchedule.exponential_increase(hp_init=hp_init, hp_max=hp_max, num_steps=len(dataloaders[mode]))
++        
++        if params is None:
++            params = filter(lambda x: x.requires_grad, model.parameters())
++        
++        model.init_optimizer(
++            opt=torch.optim.SGD,
++            params=params,
++            hp_scheduler={
++                "lr" : hp_scheduler
++            },
++            momentum=0.9,
++        )
++        
++        # --
++        # Run epoch of training w/ increasing learning rate
++        
++        avg_mom  = 0.98 # For smooth_loss
++        avg_loss = 0.   # For smooth_loss
++        
++        hp_hist, loss_hist = [], []
++        
++        gen = enumerate(dataloaders[mode])
++        if model.verbose:
++            gen = tqdm(gen, total=len(dataloaders[mode]), desc='HPFind.find:')
++        
++        for batch_idx, (data, target) in gen:
++            
++            model.set_progress(batch_idx)
++            
++            loss, _ = model.train_batch(data, target)
++            
++            if smooth_loss:
++                avg_loss    = avg_loss * avg_mom + loss * (1 - avg_mom)
++                debias_loss = avg_loss / (1 - avg_mom ** (batch_idx + 1))
++                loss_hist.append(debias_loss)
++            else:
++                loss_hist.append(loss)
++            
++            if model.verbose:
++                gen.set_postfix(**{
++                    "loss" : loss,
++                })
++            
++            hp_hist.append(model.hp['lr'])
++            
++            if loss > np.min(loss_hist) * 4:
++                break
++        
++        return np.vstack(hp_hist[:-1]), loss_hist[:-1]
++    
++    @staticmethod
++    def get_optimal_hp(hp_hist, loss_hist, c=10, burnin=5):
++        """
++            For now, gets smallest loss and goes back an order of magnitude
++            Maybe it'd be better to use the point w/ max slope?  Or not use smoothed estimate? 
++        """
++        hp_hist, loss_hist = hp_hist[burnin:], loss_hist[burnin:]
++        
++        min_loss_idx = np.array(loss_hist).argmin()
++        min_loss_hp = hp_hist[min_loss_idx]
++        opt_hp = min_loss_hp / c
++        
++        if len(opt_hp) == 1:
++            opt_hp = opt_hp[0]
++        
++        return opt_hp
++
++
++if __name__ == "__main__":
++    from rsub import *
++    from matplotlib import pyplot as plt
++    
++    # Step
++    # hp = HPSchedule.step(hp_max=np.array([1, 2]), factors=(0.5, 0.5), breaks=(10, 20), epochs=30)
++    # hps = np.vstack([hp(i) for i in np.arange(0, 30, 0.01)])
++    # _ = plt.plot(hps[:,0])
++    # _ = plt.plot(hps[:,1])
++    # show_plot()
++    
++    # Linear
++    # hp = HPSchedule.linear(epochs=30, hp_max=0.1)
++    # hps = np.vstack([hp(i) for i in np.arange(0, 30, 0.01)])
++    # _ = plt.plot(hps)
++    # show_plot()
++    
++    # # Linear cycle
++    # hp = HPSchedule.one_cycle(epochs=30, hp_max=0.1, extra=10)
++    # hps = np.vstack([hp(i) for i in np.arange(0, 40, 0.01)])
++    # _ = plt.plot(hps)
++    # show_plot()
++    
++    # Piecewise linear
++    # vals = [    
++    #     np.array([0.1, 0.5, 1.0]) * 0.0,
++    #     np.array([0.1, 0.5, 1.0]) * 1.0,
++    #     np.array([0.1, 0.5, 1.0]) * 0.5,
++    # ]
++    # hp = HPSchedule.piecewise_linear(breaks=[0, 0.5, 1], vals=vals)
++    # hps = np.vstack([hp(i) for i in np.arange(-1, 2, 0.01)])
++    # _ = plt.plot(hps[:,0])
++    # _ = plt.plot(hps[:,1])
++    # _ = plt.plot(hps[:,2])
++    # show_plot()
++    
++    # Cyclical
++    # hp = HPSchedule.cyclical(epochs=30, hp_max=0.1)
++    # hps = np.vstack([hp(i) for i in np.arange(0, 40, 0.01)])
++    # _ = plt.plot(hps)
++    # show_plot()
++    
++    # SGDR
++    # hp = HPSchedule.sgdr(period_length=10, t_mult=2, hp_max=np.array([1, 2]))
++    # hps = np.vstack([hp(i) for i in np.arange(0, 70, 0.01)])
++    # _ = plt.plot(hps[:,0])
++    # _ = plt.plot(hps[:,1])
++    # show_plot()
++    
++    # # Product
++    # hp = HPSchedule.prod_schedule([
++    #     HPSchedule.stepify(HPSchedule.linear(epochs=30, hp_max=0.1)),
++    #     HPSchedule.linear(epochs=1, hp_max=1),
++    # ])
++    # hps = np.vstack([hp(i) for i in np.arange(0, 30, 0.01)])
++    # _ = plt.plot(hps)
++    # show_plot()
++    
++    # exponential increase (for setting learning rates)
++    # hp = HPSchedule.exponential_increase(hp_init=np.array([1e-5, 1e-4]), hp_max=10, num_steps=100)
++    # hps = np.vstack([hp(i) for i in np.linspace(0, 100, 1000)])
++    # _ = plt.plot(hps[:,0])
++    # _ = plt.plot(hps[:,1])
++    # _ = plt.yscale('log')
++    # show_plot()
+diff --git a/basenet/text/__init__.py b/basenet/text/__init__.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..8607d911f93327e167f6aad1afb236a98ab533fc
+--- /dev/null
++++ b/basenet/text/__init__.py
+@@ -0,0 +1,3 @@
++from __future__ import absolute_import
++
++from . import data
+\ No newline at end of file
+diff --git a/basenet/text/data.py b/basenet/text/data.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..08dca7e1c11a9b81183476064f1bf8699926a0f7
+--- /dev/null
++++ b/basenet/text/data.py
+@@ -0,0 +1,64 @@
++#!/usr/bin/env python
++
++"""
++    data.py
++"""
++
++import numpy as np
++
++import torch
++from torch.nn import functional as F
++from torch.utils.data import Dataset
++from torch.utils.data.sampler import Sampler
++
++class RaggedDataset(Dataset):
++    def __init__(self, X, y):
++        assert len(X) == len(y), 'len(X) != len(y)'
++        self.X = [torch.LongTensor(xx) for xx in X]
++        self.y = torch.LongTensor(y)
++    
++    def __getitem__(self, idx):
++        return self.X[idx], self.y[idx]
++    
++    def __len__(self):
++        return len(self.X)
++
++
++class SortishSampler(Sampler):
++    # adapted from `fastai`
++    def __init__(self, data_source, batch_size, batches_per_chunk=50):
++        self.data_source       = data_source
++        self._key              = lambda idx: len(data_source[idx])
++        self.batch_size        = batch_size
++        self.batches_per_chunk = batches_per_chunk
++    
++    def __len__(self):
++        return len(self.data_source)
++        
++    def __iter__(self):
++        
++        idxs = np.random.permutation(len(self.data_source))
++        
++        # Group records into batches of similar size
++        chunk_size = self.batch_size * self.batches_per_chunk
++        chunks     = [idxs[i:i+chunk_size] for i in range(0, len(idxs), chunk_size)]
++        idxs       = np.hstack([sorted(chunk, key=self._key, reverse=True) for chunk in chunks])
++        
++        # Make sure largest batch is in front (for memory management reasons)
++        batches         = [idxs[i:i+self.batch_size] for i in range(0, len(idxs), self.batch_size)]
++        batch_order     = np.argsort([self._key(b[0]) for b in batches])[::-1]
++        batch_order[1:] = np.random.permutation(batch_order[1:])
++        
++        idxs = np.hstack([batches[i] for i in batch_order])
++        return iter(idxs)
++
++
++def text_collate_fn(batch, pad_value=1):
++    X, y = zip(*batch)
++    
++    max_len = max([len(xx) for xx in X])
++    X = [F.pad(xx, pad=(max_len - len(xx), 0), value=pad_value).data for xx in X]
++    
++    X = torch.stack(X, dim=-1)
++    y = torch.LongTensor(y)
++    return X, y
+\ No newline at end of file
+diff --git a/basenet/vision/__init__.py b/basenet/vision/__init__.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..108b2b03c968e4017df9ec05208a8ae82b7e6b1d
+--- /dev/null
++++ b/basenet/vision/__init__.py
+@@ -0,0 +1,4 @@
++from __future__ import absolute_import
++
++from . import transforms
++from . import layers
+\ No newline at end of file
+diff --git a/basenet/vision/layers.py b/basenet/vision/layers.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..8e20dbab066893f112455dcdd2f03871f5fb8a4a
+--- /dev/null
++++ b/basenet/vision/layers.py
+@@ -0,0 +1,30 @@
++#!/usr/bin/env python
++
++"""
++    layers.py
++"""
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++
++class AdaptiveMultiPool2d(nn.Module):
++    def __init__(self, output_size=(1, 1), op_fns=[F.adaptive_avg_pool2d, F.adaptive_max_pool2d]):
++        super(AdaptiveMultiPool2d, self).__init__()
++        
++        self.output_size = output_size
++        self.op_fns = op_fns
++    
++    def forward(self, x):
++        return torch.cat([op_fn(x, output_size=self.output_size) for op_fn in self.op_fns], dim=1)
++    
++    def __repr__(self):
++        return 'AdaptiveMultiPool2d()'
++
++
++class Flatten(nn.Module):
++    def forward(self, x):
++        return x.view(x.shape[0], -1)
++    
++    def __repr__(self):
++        return 'Flatten()'
+\ No newline at end of file
+diff --git a/basenet/vision/transforms.py b/basenet/vision/transforms.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..04d2a41ada1d98eaa225108a101ae14e36e7879c
+--- /dev/null
++++ b/basenet/vision/transforms.py
+@@ -0,0 +1,103 @@
++#!/usr/bin/env python
++
++"""
++    vision.py
++"""
++
++import numpy as np
++from PIL import Image
++from torchvision import transforms
++
++dataset_stats = {
++    'cifar10' : {
++        'mean' : (0.4914, 0.4822, 0.4465),
++        'std'  : (0.24705882352941178, 0.24352941176470588, 0.2615686274509804),
++    },
++    'fashion_mnist' : {
++        'mean' : (0.28604060411453247,),
++        'std'  : (0.3530242443084717,),
++    },
++    'mnist' : {
++        'mean' : (0.1307,),
++        'std'  : (0.3081,),
++    }
++}
++
++
++def ReflectionPadding(margin=(4, 4)):
++    
++    def _reflection_padding(x):
++        x = np.asarray(x)
++        if len(x.shape) == 2:
++            x = np.pad(x, [(margin[0], margin[0]), (margin[1], margin[1])], mode='reflect')
++        elif len(x.shape) == 3:
++            x = np.pad(x, [(margin[0], margin[0]), (margin[1], margin[1]), (0, 0)], mode='reflect')
++        
++        return Image.fromarray(x)
++    
++    return transforms.Lambda(_reflection_padding)
++
++
++def Cutout(cut_h, cut_w):
++    assert cut_h % 2 == 0, "cut_h must be even"
++    assert cut_w % 2 == 0, "cut_w must be even"
++    
++    def _cutout(x):
++        c, h, w = x.shape
++        
++        h_center = np.random.choice(h)
++        w_center = np.random.choice(w)
++        
++        h_hi = min(h, h_center + (cut_h // 2))
++        h_lo = max(0, h_center - (cut_h // 2))
++        
++        w_hi = min(w, w_center + (cut_w // 2))
++        w_lo = max(0, w_center - (cut_w // 2))
++        
++        mask = np.ones((c, h, w), dtype=np.float32)
++        mask[:,h_lo:h_hi,w_lo:w_hi] = 0.0
++        return x * mask
++    
++    return transforms.Lambda(_cutout)
++
++
++def NormalizeDataset(dataset):
++    assert dataset in set(dataset_stats.keys()), 'unknown dataset %s' % dataset
++    return transforms.Normalize(dataset_stats[dataset]['mean'], dataset_stats[dataset]['std'])
++
++
++def DatasetPipeline(dataset):
++    assert dataset in set(['cifar10', 'fashion_mnist']), 'unknown dataset %s' % dataset
++    if dataset == 'cifar10':
++        transform_train = transforms.Compose([
++            ReflectionPadding(margin=(4, 4)),
++            transforms.RandomCrop(32),
++            transforms.RandomHorizontalFlip(),
++            transforms.ToTensor(),
++            NormalizeDataset(dataset='cifar10'),
++        ])
++        
++        transform_test = transforms.Compose([
++            transforms.ToTensor(),
++            NormalizeDataset(dataset='cifar10'),
++        ])
++        
++    elif dataset == 'fashion_mnist':
++        transform_train = transforms.Compose([
++            ReflectionPadding(margin=(4, 4)),
++            transforms.RandomCrop(28),
++            transforms.RandomHorizontalFlip(),
++            transforms.ToTensor(),
++            NormalizeDataset(dataset='fashion_mnist'),
++        ])
++        
++        transform_test = transforms.Compose([
++            transforms.ToTensor(),
++            NormalizeDataset(dataset='fashion_mnist'),
++        ])
++        
++    return transform_train, transform_test
++
++
++
++
+diff --git a/examples/cifar/augment.py b/examples/cifar/augment.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..271acc5b817f718c9b2c2a3a58fe550c7a5d1f21
+--- /dev/null
++++ b/examples/cifar/augment.py
+@@ -0,0 +1,123 @@
++from PIL import Image, ImageEnhance, ImageOps
++import numpy as np
++import random
++
++class Policy(object):
++    """ Randomly choose one of the best 25 Sub-policies on SVHN.
++        operations: 5x2 list
++        probs: 5x2 list
++        magnitudes: 5x2 list
++        Example:
++        >>> policy = SVHNPolicy()
++        >>> transformed = policy(image)
++
++        Example as a PyTorch Transform:
++        >>> transform=transforms.Compose([
++        >>>     transforms.Resize(256),
++        >>>     SVHNPolicy(),
++        >>>     transforms.ToTensor()])
++    """
++    def __init__(self, operations, probs, magnitudes, fillcolor=(128, 128, 128)):
++        self.policies = [
++            SubPolicy(probs[0][0], operations[0][0], magnitudes[0][0], 
++                probs[0][1], operations[0][1], magnitudes[0][1], fillcolor),
++            SubPolicy(probs[1][0], operations[1][0], magnitudes[1][0], 
++                probs[1][1], operations[1][1], magnitudes[1][1], fillcolor),
++            SubPolicy(probs[2][0], operations[2][0], magnitudes[2][0], 
++                probs[2][1], operations[2][1], magnitudes[2][1], fillcolor),
++            SubPolicy(probs[3][0], operations[3][0], magnitudes[3][0], 
++                probs[3][1], operations[3][1], magnitudes[3][1], fillcolor),
++            SubPolicy(probs[4][0], operations[4][0], magnitudes[4][0], 
++                probs[4][1], operations[4][1], magnitudes[4][1], fillcolor),
++        ]
++    def __call__(self, img):
++        policy_idx = random.randint(0, len(self.policies) - 1)
++        return self.policies[policy_idx](img)
++
++    def __repr__(self):
++        return "AutoAugment Policy"
++
++
++class SubPolicy(object):
++    def __init__(self, p1, operation1, magnitude1, p2, operation2, magnitude2, fillcolor=(128, 128, 128)):
++        # ranges = {
++        #     "shearX": np.linspace(0, 0.3, 10),
++        #     "shearY": np.linspace(0, 0.3, 10),
++        #     "translateX": np.linspace(0, 150 / 331, 10),
++        #     "translateY": np.linspace(0, 150 / 331, 10),
++        #     "rotate": np.linspace(0, 30, 10),
++        #     "color": np.linspace(0.0, 0.9, 10),
++        #     "posterize": np.round(np.linspace(8, 4, 10), 0).astype(np.int),
++        #     "solarize": np.linspace(256, 0, 10),
++        #     "contrast": np.linspace(0.0, 0.9, 10),
++        #     "sharpness": np.linspace(0.0, 0.9, 10),
++        #     "brightness": np.linspace(0.0, 0.9, 10),
++        #     "autocontrast": [0] * 10,
++        #     "equalize": [0] * 10,
++        #     "invert": [0] * 10
++        ranges = {
++            "shearX": (0, 0.3),
++            "shearY": (0, 0.3),
++            "translateX": (0, 150 / 331),
++            "translateY": (0, 150 / 331),
++            "rotate": (0, 30),
++            "color": (0.0, 0.9),
++            "posterize": (8, 4), #np.round(np.linspace(8, 4, 10), 0).astype(np.int),
++            "solarize": (256, 0),
++            "contrast": (0.0, 0.9),
++            "sharpness": (0.0, 0.9),
++            "brightness": (0.0, 0.9),
++            "autocontrast": (0.0, 0.0),
++            "equalize": (0.0, 0.0),
++            "invert": (0.0, 0.0)       
++        }
++
++        # from https://stackoverflow.com/questions/5252170/specify-image-filling-color-when-rotating-in-python-with-pil-and-setting-expand
++        def rotate_with_fill(img, magnitude):
++            rot = img.convert("RGBA").rotate(magnitude)
++            return Image.composite(rot, Image.new("RGBA", rot.size, (128,) * 4), rot).convert(img.mode)
++
++        func = {
++            "shearX": lambda img, magnitude: img.transform(
++                img.size, Image.AFFINE, (1, magnitude * random.choice([-1, 1]), 0, 0, 1, 0),
++                Image.BICUBIC, fillcolor=fillcolor),
++            "shearY": lambda img, magnitude: img.transform(
++                img.size, Image.AFFINE, (1, 0, 0, magnitude * random.choice([-1, 1]), 1, 0),
++                Image.BICUBIC, fillcolor=fillcolor),
++            "translateX": lambda img, magnitude: img.transform(
++                img.size, Image.AFFINE, (1, 0, magnitude * img.size[0] * random.choice([-1, 1]), 0, 1, 0),
++                fillcolor=fillcolor),
++            "translateY": lambda img, magnitude: img.transform(
++                img.size, Image.AFFINE, (1, 0, 0, 0, 1, magnitude * img.size[1] * random.choice([-1, 1])),
++                fillcolor=fillcolor),
++            "rotate": lambda img, magnitude: rotate_with_fill(img, magnitude),
++            "color": lambda img, magnitude: ImageEnhance.Color(img).enhance(1 + magnitude * random.choice([-1, 1])),
++            "posterize": lambda img, magnitude: ImageOps.posterize(img, magnitude),
++            "solarize": lambda img, magnitude: ImageOps.solarize(img, magnitude),
++            "contrast": lambda img, magnitude: ImageEnhance.Contrast(img).enhance(
++                1 + magnitude * random.choice([-1, 1])),
++            "sharpness": lambda img, magnitude: ImageEnhance.Sharpness(img).enhance(
++                1 + magnitude * random.choice([-1, 1])),
++            "brightness": lambda img, magnitude: ImageEnhance.Brightness(img).enhance(
++                1 + magnitude * random.choice([-1, 1])),
++            "autocontrast": lambda img, magnitude: ImageOps.autocontrast(img),
++            "equalize": lambda img, magnitude: ImageOps.equalize(img),
++            "invert": lambda img, magnitude: ImageOps.invert(img)
++        }
++        
++        self.p1 = p1
++        self.operation1 = func[operation1]
++        self.magnitude1 = (magnitude1)*(ranges[operation1][1] - ranges[operation1][0]) + ranges[operation1][0]
++        if operation1 == 'posterize':
++            self.magnitude1 = np.round(self.magnitude1, 0).astype(np.int)
++        self.p2 = p2
++        self.operation2 = func[operation2]
++        self.magnitude2 = (magnitude2)*(ranges[operation2][1] - ranges[operation2][0]) + ranges[operation2][0]
++        if operation2 == 'posterize':
++            self.magnitude2 = np.round(self.magnitude2, 0).astype(np.int)
++
++
++    def __call__(self, img):
++        if random.random() < self.p1: img = self.operation1(img, self.magnitude1)
++        if random.random() < self.p2: img = self.operation2(img, self.magnitude2)
++        return img
+\ No newline at end of file
+diff --git a/examples/cifar/auto_config_tuun.yml b/examples/cifar/auto_config_tuun.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..836c4a9337a72f0fe51744e73099cc5565893bba
+--- /dev/null
++++ b/examples/cifar/auto_config_tuun.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: auto_search_space.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 1,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 automain.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/auto_search_space.json b/examples/cifar/auto_search_space.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..61963b3fdc17548af334734fb24d69310d5c682a
+--- /dev/null
++++ b/examples/cifar/auto_search_space.json
+@@ -0,0 +1,32 @@
++{
++    "policy1_0":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy1_1":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy2_0":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy2_1":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy3_0":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy3_1":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy4_0":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy4_1":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy5_0":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "policy5_1":{"_type":"choice", "_value":["shearX", "shearY", "translateX", "translateY", "rotate", "color", "posterize", "solarize", "contrast", "sharpness", "brightness", "autocontrast", "equalize", "invert"]},
++    "prob1_0":{"_type":"uniform", "_value":[0, 1]},
++    "prob1_1":{"_type":"uniform", "_value":[0, 1]},
++    "prob2_0":{"_type":"uniform", "_value":[0, 1]},
++    "prob2_1":{"_type":"uniform", "_value":[0, 1]},
++    "prob3_0":{"_type":"uniform", "_value":[0, 1]},
++    "prob3_1":{"_type":"uniform", "_value":[0, 1]},
++    "prob4_0":{"_type":"uniform", "_value":[0, 1]},
++    "prob4_1":{"_type":"uniform", "_value":[0, 1]},
++    "prob5_0":{"_type":"uniform", "_value":[0, 1]},
++    "prob5_1":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude1_0":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude1_1":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude2_0":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude2_1":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude3_0":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude3_1":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude4_0":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude4_1":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude5_0":{"_type":"uniform", "_value":[0, 1]},
++    "magnitude5_1":{"_type":"uniform", "_value":[0, 1]} 
++}
+diff --git a/examples/cifar/automain.py b/examples/cifar/automain.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..247cf788a72a90f643fc4c48e25ca23ca87ce509
+--- /dev/null
++++ b/examples/cifar/automain.py
+@@ -0,0 +1,283 @@
++#!/usr/bin/env python
++
++"""
++    cifar10.py and SVHN
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++import nni
++from time import time
++from PIL import Image
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++from basenet.vision import transforms as btransforms
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++from augment import Policy
++# --
++# CLI
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=40)
++    parser.add_argument('--extra', type=int, default=0)
++    parser.add_argument('--burnout', type=int, default=0)
++    parser.add_argument('--lr-schedule', type=str, default='one_cycle')
++    parser.add_argument('--lr-max', type=float, default=0.1)
++    parser.add_argument('--weight-decay', type=float, default=5e-4)
++    parser.add_argument('--momentum', type=float, default=0.9)
++    parser.add_argument('--batch-size', type=int, default=128)
++    
++    parser.add_argument('--sgdr-period-length', type=int, default=10)
++    parser.add_argument('--sgdr-t-mult', type=int, default=2)
++    
++    parser.add_argument('--seed', type=int, default=123)
++    parser.add_argument('--download', action="store_false")
++    parser.add_argument('--dataset', type=str, default='svhn')
++    return parser.parse_args()
++
++args = vars(parse_args())
++tuner_params = nni.get_next_parameter()
++args.update(tuner_params)
++
++set_seeds(args["seed"])
++
++
++operations = [[args["policy1_0"], args["policy1_1"]], 
++              [args["policy2_0"], args["policy2_1"]],
++              [args["policy3_0"], args["policy3_1"]],
++              [args["policy4_0"], args["policy4_1"]],
++              [args["policy5_0"], args["policy5_1"]]]
++probs = [[args["prob1_0"], args["prob1_1"]], 
++         [args["prob2_0"], args["prob2_1"]],
++         [args["prob3_0"], args["prob3_1"]],
++         [args["prob4_0"], args["prob4_1"]],
++         [args["prob5_0"], args["prob5_1"]]]
++magnitudes = [[args["magnitude1_0"], args["magnitude1_1"]], 
++              [args["magnitude2_0"], args["magnitude2_1"]],
++              [args["magnitude3_0"], args["magnitude3_1"]],
++              [args["magnitude4_0"], args["magnitude4_1"]],
++              [args["magnitude5_0"], args["magnitude5_1"]]]
++#operations = [["shearX", "translateX"],
++#              ["shearY", "translateY"],
++#              ["shearY", "translateY"],
++#              ["shearY", "translateY"],
++#              ["shearY", "translateY"]]
++#probs = [[0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7]]          
++#magnitudes = [[0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7]]
++## --
++# IO
++if args['dataset'] == 'cifar10':
++    print('cifar10.py: making dataloaders...', file=sys.stderr)
++
++    transform_train = transforms.Compose([
++        # btransforms.ReflectionPadding(margin=(4, 4)),
++        # transforms.RandomCrop(32),
++        # transforms.RandomHorizontalFlip(),
++        Policy(operations, probs, magnitudes),
++        transforms.ToTensor(),
++        btransforms.NormalizeDataset(dataset='cifar10'),
++    ])
++
++    transform_test = transforms.Compose([
++        transforms.ToTensor(),
++        btransforms.NormalizeDataset(dataset='cifar10'),
++    ])
++
++    try:
++        trainset = datasets.CIFAR10(root='./data', train=True, download=args["download"], transform=transform_train)
++        testset  = datasets.CIFAR10(root='./data', train=False, download=args["download"], transform=transform_test)
++    except:
++        raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++else:
++    print('svhn.py: making dataloaders...', file=sys.stderr)
++    transform_train = transforms.Compose([
++        #btransforms.ReflectionPadding(margin=(4, 4)),
++        #transforms.RandomCrop(32),
++        #transforms.RandomHorizontalFlip(),
++        Policy(operations, probs, magnitudes),
++        transforms.ToTensor(),
++        #btransforms.NormalizeDataset(dataset='cifar10'),
++    ])
++
++    transform_test = transforms.Compose([
++        transforms.ToTensor(),
++        #btransforms.NormalizeDataset(dataset='cifar10'),
++    ])
++
++    try:
++        trainset = datasets.SVHN(root='./data', split='train', download=args["download"], transform=transform_train)
++        testset  = datasets.SVHN(root='./data', split='test', download=args["download"], transform=transform_test)
++    except:
++        raise Exception('svhn.py: error loading data -- try rerunning w/ `--download` flag')
++
++
++
++
++
++trainloader = torch.utils.data.DataLoader(
++    trainset,
++    batch_size=args["batch_size"],
++    shuffle=True,
++    num_workers=4,
++    pin_memory=True,
++)
++
++testloader = torch.utils.data.DataLoader(
++    testset,
++    batch_size=512,
++    shuffle=False,
++    num_workers=4,
++    pin_memory=True,
++)
++
++dataloaders = {
++    "train" : trainloader,
++    "test"  : testloader,
++}
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super().__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
++        super().__init__(loss_fn=F.cross_entropy)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = x.half()
++        x = self.prep(x)
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++# --
++# Define model
++
++print('cifar10.py: initializing model...', file=sys.stderr)
++
++cuda = torch.device('cuda')
++model = ResNet18().to(cuda).half()
++model.verbose = True
++print(model, file=sys.stderr)
++
++# --
++# Initialize optimizer
++
++print('initializing optimizer...', file=sys.stderr)
++
++if args["lr_schedule"] == 'linear_cycle':
++    lr_scheduler = HPSchedule.linear_cycle(hp_max=args["lr_max"], epochs=args["epochs"], extra=args["extra"])
++elif args["lr_schedule"] == 'sgdr':
++    lr_scheduler = HPSchedule.sgdr(
++        hp_init=args["lr_max"],
++        period_length=args["sgdr_period_length"],
++        t_mult=args["sgdr_t_mult"],
++    )
++else:
++    lr_scheduler = getattr(HPSchedule, args["lr_schedule"])(hp_max=args["lr_max"], epochs=args["epochs"])
++
++model.init_optimizer(
++    opt=torch.optim.SGD,
++    params=model.parameters(),
++    hp_scheduler={"lr" : lr_scheduler},
++    momentum=args["momentum"],
++    weight_decay=args["weight_decay"],
++    nesterov=True,
++)
++
++# --
++# Train
++
++print('training...', file=sys.stderr)
++t = time()
++for epoch in range(args["epochs"] + args["extra"] + args["burnout"]):
++    train = model.train_epoch(dataloaders, mode='train', metric_fns=['n_correct'])
++    test  = model.eval_epoch(dataloaders, mode='test', metric_fns=['n_correct'])
++    if epoch < args["epochs"] + args["extra"] + args["burnout"] - 1:
++        nni.report_intermediate_result(test['acc'])
++    else:
++        nni.report_final_result(test['acc'])
++    print(json.dumps({
++        "epoch"     : int(epoch),
++        "lr"        : model.hp['lr'],
++        "test_acc"  : float(test['acc']),
++        "train_acc" : float(train['acc']),
++        "time"      : time() - t,
++    }))
++    sys.stdout.flush()
++
++model.save('weights')
+diff --git a/examples/cifar/cifar10.py b/examples/cifar/cifar10.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..6a94c1db547298d250a8e787c1b5faae2af90303
+--- /dev/null
++++ b/examples/cifar/cifar10.py
+@@ -0,0 +1,226 @@
++#!/usr/bin/env python
++
++"""
++    cifar10.py
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++from time import time
++from PIL import Image
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++from basenet.vision import transforms as btransforms
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++
++# --
++# CLI
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=30)
++    parser.add_argument('--extra', type=int, default=0)
++    parser.add_argument('--burnout', type=int, default=0)
++    parser.add_argument('--lr-schedule', type=str, default='one_cycle')
++    parser.add_argument('--lr-max', type=float, default=0.1)
++    parser.add_argument('--weight-decay', type=float, default=5e-4)
++    parser.add_argument('--momentum', type=float, default=0.9)
++    parser.add_argument('--batch-size', type=int, default=128)
++    
++    parser.add_argument('--sgdr-period-length', type=int, default=10)
++    parser.add_argument('--sgdr-t-mult', type=int, default=2)
++    
++    parser.add_argument('--seed', type=int, default=123)
++    parser.add_argument('--download', action="store_true")
++    return parser.parse_args()
++
++args = parse_args()
++
++set_seeds(args.seed)
++
++# --
++# IO
++
++print('cifar10.py: making dataloaders...', file=sys.stderr)
++
++transform_train = transforms.Compose([
++    btransforms.ReflectionPadding(margin=(4, 4)),
++    transforms.RandomCrop(32),
++    transforms.RandomHorizontalFlip(),
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++transform_test = transforms.Compose([
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++try:
++    trainset = datasets.CIFAR10(root='./data', train=True, download=args.download, transform=transform_train)
++    testset  = datasets.CIFAR10(root='./data', train=False, download=args.download, transform=transform_test)
++except:
++    raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++
++trainloader = torch.utils.data.DataLoader(
++    trainset,
++    batch_size=args.batch_size,
++    shuffle=True,
++    num_workers=4,
++    pin_memory=True,
++)
++
++testloader = torch.utils.data.DataLoader(
++    testset,
++    batch_size=512,
++    shuffle=False,
++    num_workers=4,
++    pin_memory=True,
++)
++
++dataloaders = {
++    "train" : trainloader,
++    "test"  : testloader,
++}
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super().__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
++        super().__init__(loss_fn=F.cross_entropy)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = x.half()
++        x = self.prep(x)
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++# --
++# Define model
++
++print('cifar10.py: initializing model...', file=sys.stderr)
++
++cuda = torch.device('cuda')
++model = ResNet18().to(cuda).half()
++model.verbose = True
++print(model, file=sys.stderr)
++
++# --
++# Initialize optimizer
++
++print('cifar10.py: initializing optimizer...', file=sys.stderr)
++
++if args.lr_schedule == 'linear_cycle':
++    lr_scheduler = HPSchedule.linear_cycle(hp_max=args.lr_max, epochs=args.epochs, extra=args.extra)
++elif args.lr_schedule == 'sgdr':
++    lr_scheduler = HPSchedule.sgdr(
++        hp_init=args.lr_max,
++        period_length=args.sgdr_period_length,
++        t_mult=args.sgdr_t_mult,
++    )
++else:
++    lr_scheduler = getattr(HPSchedule, args.lr_schedule)(hp_max=args.lr_max, epochs=args.epochs)
++
++model.init_optimizer(
++    opt=torch.optim.SGD,
++    params=model.parameters(),
++    hp_scheduler={"lr" : lr_scheduler},
++    momentum=args.momentum,
++    weight_decay=args.weight_decay,
++    nesterov=True,
++)
++
++# --
++# Train
++
++print('cifar10.py: training...', file=sys.stderr)
++t = time()
++for epoch in range(args.epochs + args.extra + args.burnout):
++    train = model.train_epoch(dataloaders, mode='train', metric_fns=['n_correct'])
++    test  = model.eval_epoch(dataloaders, mode='test', metric_fns=['n_correct'])
++    print(json.dumps({
++        "epoch"     : int(epoch),
++        "lr"        : model.hp['lr'],
++        "test_acc"  : float(test['acc']),
++        "train_acc" : float(train['acc']),
++        "time"      : time() - t,
++    }))
++    sys.stdout.flush()
++
++model.save('weights')
+\ No newline at end of file
+diff --git a/examples/cifar/config.yml b/examples/cifar/config.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..b8b579943c0752f66806dba2b389c41fe2816384
+--- /dev/null
++++ b/examples/cifar/config.yml
+@@ -0,0 +1,26 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space.json
++#choice: true, false
++useAnnotation: false
++tuner:
++  #choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner
++  #SMAC (SMAC should be installed through nnictl)
++  builtinTunerName: Random
++  # classArgs:
++  #   #choice: maximize, minimize
++  #   #optimize_mode: maximize
++  gpuIndices: '0'
++
++trial:
++  command: python3 main.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_random.yml b/examples/cifar/config_random.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..b8b579943c0752f66806dba2b389c41fe2816384
+--- /dev/null
++++ b/examples/cifar/config_random.yml
+@@ -0,0 +1,26 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space.json
++#choice: true, false
++useAnnotation: false
++tuner:
++  #choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner
++  #SMAC (SMAC should be installed through nnictl)
++  builtinTunerName: Random
++  # classArgs:
++  #   #choice: maximize, minimize
++  #   #optimize_mode: maximize
++  gpuIndices: '0'
++
++trial:
++  command: python3 main.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_tuun.yml b/examples/cifar/config_tuun.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..ee273edb9878c92f1b501ec7d4097b98b05aac38
+--- /dev/null
++++ b/examples/cifar/config_tuun.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 1,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 main1.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_tuun1.yml b/examples/cifar/config_tuun1.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..d7245272515651e4a1b60ebec496c575216e5382
+--- /dev/null
++++ b/examples/cifar/config_tuun1.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space1.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 1,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 main1.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_tuun11.yml b/examples/cifar/config_tuun11.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..10965f70b6081f08ce8eef4b84efa84f897d6c72
+--- /dev/null
++++ b/examples/cifar/config_tuun11.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space1.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 11,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 main1.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_tuun111.yml b/examples/cifar/config_tuun111.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..705320ef5b0f140e944435da4e35b0035ec3d057
+--- /dev/null
++++ b/examples/cifar/config_tuun111.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space1.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 111,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 main1.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_tuun1111.yml b/examples/cifar/config_tuun1111.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..511be2da29466a13ca994d29f5328ced8792c3c7
+--- /dev/null
++++ b/examples/cifar/config_tuun1111.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space1.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 1111,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 main1.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/config_tuun11111.yml b/examples/cifar/config_tuun11111.yml
+new file mode 100755
+index 0000000000000000000000000000000000000000..46895dfd0a99cb46a7ef5e7a1fafbca8a99cf605
+--- /dev/null
++++ b/examples/cifar/config_tuun11111.yml
+@@ -0,0 +1,41 @@
++authorName: default
++experimentName: example_pytorch_cifar10
++trialConcurrency: 1
++maxExecDuration: 100h
++maxTrialNum: 60
++#choice: local, remote, pai
++trainingServicePlatform: local
++searchSpacePath: search_space1.json
++#choice: true, false
++useAnnotation: false
++#tuner:
++  ##choice: TPE, Random, Anneal, Evolution, BatchTuner, MetisTuner, GPTuner
++  ##SMAC (SMAC should be installed through nnictl)
++  #builtinTunerName: TPE
++  #classArgs:
++    ##choice: maximize, minimize
++    #optimize_mode: minimize
++tuner:
++  codeDir: /home/zeya.wang/ers/cifar10/tuun-dev/tuun
++  classFileName: nni_tuner.py
++  className: TuunTuner
++  # Any parameter need to pass to your tuner class __init__ constructor
++  # can be specified in this optional classArgs field, for example
++  classArgs:
++    optimize_mode: maximize
++    tuun_config: {
++        'seed': 11111,
++        'model_config': {'name': 'standistmatgp'},
++        'acqfunction_config': {'name': 'default', 'acq_str': 'ucb', 'n_gen': 500},
++        'acqoptimizer_config': {'n_init_rs': 5, 'jitter': True},
++        'probo_config': {'normalize_real': True},
++    } 
++  gpuIndices: '1'
++
++trial:
++  command: python3 main1.py
++  codeDir: .
++  gpuNum: 1
++localConfig:
++  maxTrialNumPerGpu:  1
++  useActiveGpu: true
+diff --git a/examples/cifar/main.py b/examples/cifar/main.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..e2ec10259616fad26acf5f7ee83c4a68a69694e0
+--- /dev/null
++++ b/examples/cifar/main.py
+@@ -0,0 +1,251 @@
++#!/usr/bin/env python
++
++"""
++    cifar10.py
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++import nni
++from time import time
++from PIL import Image
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++from basenet.vision import transforms as btransforms
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++
++# --
++# CLI
++import os 
++os.environ["CUDA_VISIBLE_DEVICES"]="0"
++
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=40)
++    parser.add_argument('--extra', type=int, default=0)
++    parser.add_argument('--burnout', type=int, default=0)
++    parser.add_argument('--lr-schedule', type=str, default='one_cycle')
++    parser.add_argument('--lr-max', type=float, default=0.1)
++    parser.add_argument('--lr-final', type=float, default=0.1)
++
++    parser.add_argument('--weight-decay', type=float, default=5e-4)
++    parser.add_argument('--momentum', type=float, default=0.9)
++    parser.add_argument('--batch-size', type=int, default=128)
++    
++    parser.add_argument('--sgdr-period-length', type=int, default=10)
++    parser.add_argument('--sgdr-t-mult', type=int, default=2)
++    
++    parser.add_argument('--seed', type=int, default=123)
++    parser.add_argument('--download', action="store_true")
++    return parser.parse_args()
++
++args = vars(parse_args())
++tuner_params = nni.get_next_parameter()
++args.update(tuner_params)
++print(args["lr_max"])
++print(args["lr_final"])
++print(args["batch_size"])
++print(args["weight_decay"])
++print(args["momentum"])
++
++set_seeds(args["seed"])
++
++# --
++# IO
++
++print('cifar10.py: making dataloaders...', file=sys.stderr)
++
++transform_train = transforms.Compose([
++    btransforms.ReflectionPadding(margin=(4, 4)),
++    transforms.RandomCrop(32),
++    transforms.RandomHorizontalFlip(),
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++transform_test = transforms.Compose([
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++try:
++    trainset = datasets.CIFAR10(root='./data', train=True, download=args["download"], transform=transform_train)
++    testset  = datasets.CIFAR10(root='./data', train=False, download=args["download"], transform=transform_test)
++except:
++    raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++
++trainloader = torch.utils.data.DataLoader(
++    trainset,
++    batch_size=args["batch_size"],
++    shuffle=True,
++    num_workers=4,
++    pin_memory=True,
++)
++
++testloader = torch.utils.data.DataLoader(
++    testset,
++    batch_size=512,
++    shuffle=False,
++    num_workers=4,
++    pin_memory=True,
++)
++
++dataloaders = {
++    "train" : trainloader,
++    "test"  : testloader,
++}
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super().__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
++        super().__init__(loss_fn=F.cross_entropy)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = x.half()
++        x = self.prep(x)
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++# --
++# Define model
++
++print('cifar10.py: initializing model...', file=sys.stderr)
++
++cuda = torch.device('cuda')
++model = ResNet18().to(cuda).half()
++model.verbose = True
++print(model, file=sys.stderr)
++
++# --
++# Initialize optimizer
++
++print('cifar10.py: initializing optimizer...', file=sys.stderr)
++
++if args["lr_schedule"] == 'linear_cycle':
++    lr_scheduler = HPSchedule.linear_cycle(hp_max=args["lr_max"], epochs=args["epochs"], extra=args["extra"])
++elif args["lr_schedule"] == 'sgdr':
++    lr_scheduler = HPSchedule.sgdr(
++        hp_init=args["lr_max"],
++        period_length=args["sgdr_period_length"],
++        t_mult=args["sgdr_t_mult"],
++    )
++else:
++    lr_scheduler = getattr(HPSchedule, args["lr_schedule"])(hp_add=args["lr_max"], 
++        epochs=args["epochs"], hp_final=args["lr_final"])
++
++model.init_optimizer(
++    opt=torch.optim.SGD,
++    params=model.parameters(),
++    hp_scheduler={"lr" : lr_scheduler},
++    momentum=args["momentum"],
++    weight_decay=args["weight_decay"],
++    nesterov=True,
++)
++
++# --
++# Train
++
++print('cifar10.py: training...', file=sys.stderr)
++t = time()
++for epoch in range(args["epochs"] + args["extra"] + args["burnout"]):
++    try:
++        train = model.train_epoch(dataloaders, mode='train', metric_fns=['n_correct'])
++        test  = model.eval_epoch(dataloaders, mode='test', metric_fns=['n_correct'])
++        metric_accs = test['acc']
++
++        if epoch < args["epochs"] + args["extra"] + args["burnout"] - 1:
++            nni.report_intermediate_result(metric_accs)
++        else:
++            nni.report_final_result(metric_accs)
++        print(json.dumps({
++            "epoch"     : int(epoch),
++            "lr"        : model.hp['lr'],
++            "test_acc"  : float(test['acc']),
++            "train_acc" : float(train['acc']),
++            "time"      : time() - t,
++        }))
++        sys.stdout.flush()
++    except:
++        metric_accs = 0.1
++        nni.report_final_result(metric_accs)
++        sys.exit(1)
++
++#model.save('weights')
+diff --git a/examples/cifar/main1.py b/examples/cifar/main1.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..de3d661ab55900200673f13bdef5e6b52624e6a3
+--- /dev/null
++++ b/examples/cifar/main1.py
+@@ -0,0 +1,251 @@
++#!/usr/bin/env python
++
++"""
++    cifar10.py
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++import nni
++from time import time
++from PIL import Image
++import math
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++from basenet.vision import transforms as btransforms
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++
++# --
++# CLI
++import os 
++os.environ["CUDA_VISIBLE_DEVICES"]="1"
++
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=40)
++    parser.add_argument('--extra', type=int, default=0)
++    parser.add_argument('--burnout', type=int, default=0)
++    parser.add_argument('--lr-schedule', type=str, default='one_cycle')
++    parser.add_argument('--lr-max', type=float, default=0.1)
++    parser.add_argument('--lr-final', type=float, default=0.1)
++
++    parser.add_argument('--weight-decay', type=float, default=5e-4)
++    parser.add_argument('--momentum', type=float, default=0.9)
++    parser.add_argument('--batch-size', type=float, default=128.0)
++    
++    parser.add_argument('--sgdr-period-length', type=int, default=10)
++    parser.add_argument('--sgdr-t-mult', type=int, default=2)
++    
++    parser.add_argument('--seed', type=int, default=123)
++    parser.add_argument('--download', action="store_true")
++    return parser.parse_args()
++
++args = vars(parse_args())
++tuner_params = nni.get_next_parameter()
++args.update(tuner_params)
++print(args["lr_max"])
++print(args["lr_final"])
++print(args["batch_size"])
++print(args["weight_decay"])
++print(args["momentum"])
++
++set_seeds(args["seed"])
++
++# --
++# IO
++
++print('cifar10.py: making dataloaders...', file=sys.stderr)
++
++transform_train = transforms.Compose([
++    btransforms.ReflectionPadding(margin=(4, 4)),
++    transforms.RandomCrop(32),
++    transforms.RandomHorizontalFlip(),
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++transform_test = transforms.Compose([
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++try:
++    trainset = datasets.CIFAR10(root='./data', train=True, download=args["download"], transform=transform_train)
++    testset  = datasets.CIFAR10(root='./data', train=False, download=args["download"], transform=transform_test)
++except:
++    raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++
++trainloader = torch.utils.data.DataLoader(
++    trainset,
++    batch_size=int(math.floor(args["batch_size"])),
++    shuffle=True,
++    num_workers=4,
++    pin_memory=True,
++)
++
++testloader = torch.utils.data.DataLoader(
++    testset,
++    batch_size=512,
++    shuffle=False,
++    num_workers=4,
++    pin_memory=True,
++)
++
++dataloaders = {
++    "train" : trainloader,
++    "test"  : testloader,
++}
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super().__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
++        super().__init__(loss_fn=F.cross_entropy)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = x.half()
++        x = self.prep(x)
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++# --
++# Define model
++
++print('cifar10.py: initializing model...', file=sys.stderr)
++
++cuda = torch.device('cuda')
++model = ResNet18().to(cuda).half()
++model.verbose = True
++print(model, file=sys.stderr)
++
++# --
++# Initialize optimizer
++
++print('cifar10.py: initializing optimizer...', file=sys.stderr)
++
++if args["lr_schedule"] == 'linear_cycle':
++    lr_scheduler = HPSchedule.linear_cycle(hp_max=args["lr_max"], epochs=args["epochs"], extra=args["extra"])
++elif args["lr_schedule"] == 'sgdr':
++    lr_scheduler = HPSchedule.sgdr(
++        hp_init=args["lr_max"],
++        period_length=args["sgdr_period_length"],
++        t_mult=args["sgdr_t_mult"],
++    )
++else:
++    lr_scheduler = getattr(HPSchedule, args["lr_schedule"])(hp_add=args["lr_max"], 
++        epochs=args["epochs"], hp_final=args["lr_final"])
++
++model.init_optimizer(
++    opt=torch.optim.SGD,
++    params=model.parameters(),
++    hp_scheduler={"lr" : lr_scheduler},
++    momentum=args["momentum"],
++    weight_decay=args["weight_decay"],
++    nesterov=True,
++)
++
++# --
++# Train
++
++print('cifar10.py: training...', file=sys.stderr)
++t = time()
++for epoch in range(args["epochs"] + args["extra"] + args["burnout"]):
++    try:
++        train = model.train_epoch(dataloaders, mode='train', metric_fns=['n_correct'])
++        test  = model.eval_epoch(dataloaders, mode='test', metric_fns=['n_correct'])
++        metric_accs = test['acc']
++
++        if epoch < args["epochs"] + args["extra"] + args["burnout"] - 1:
++            nni.report_intermediate_result(metric_accs)
++        else:
++            nni.report_final_result(metric_accs)
++        print(json.dumps({
++            "epoch"     : int(epoch),
++            "lr"        : model.hp['lr'],
++            "test_acc"  : float(test['acc']),
++            "train_acc" : float(train['acc']),
++            "time"      : time() - t,
++        }))
++        sys.stdout.flush()
++    except:
++        metric_accs = 0.1
++        nni.report_final_result(metric_accs)
++        sys.exit(1)
++
++#model.save('weights')
+diff --git a/examples/cifar/run.py b/examples/cifar/run.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..f0292b86685cbf0ecd4501ee13e362055d1cc908
+--- /dev/null
++++ b/examples/cifar/run.py
+@@ -0,0 +1,42 @@
++import os, sys
++import subprocess
++import time
++# experiments
++pwd = 'baoyu'
++
++# tuner
++tuners = ['random']
++for tuner in tuners:
++    for i in range(5):
++        cmd0 = 'fuser -k 7007/tcp'
++        os.system('echo {}|{}'.format(pwd,cmd0))
++        cmd1 = 'nnictl create --config config_{}.yml --port=7007'.format(tuner)
++        print(cmd1)
++        os.system(cmd1)
++        while True:
++            time.sleep(100)
++            l = 4
++            experiment = subprocess.check_output("nnictl experiment list | tail -{} | head -1".format(l),shell=True).decode("utf-8").split('\n')[0]  
++            status = experiment.split('Status: ')[1].split(' ')[0]
++            port = experiment.split('Port: ')[1].split(' ')[0]
++            #status = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $6}}'".format(l),shell=True).decode("utf-8").split('\n')[0]            
++            #print(status) 
++            #port = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $8}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++            #print(port)
++            print(l,experiment, port,status)
++            while port != '7007':
++                l = l+1
++                experiment = subprocess.check_output("nnictl experiment list | tail -{} | head -1".format(l),shell=True).decode("utf-8").split('\n')[0]  
++                status = experiment.split('Status: ')[1].split(' ')[0]
++                port = experiment.split('Port: ')[1].split(' ')[0] 
++                #status = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $6}}'".format(l),shell=True).decode("utf-8").split('\n')[0]            
++                #print(status)
++                #port = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $8}}'".format(l),shell=True).decode("utf-8").split('\n')[0]
++                #print(port)
++            print(l,experiment, port,status)
++            if status == 'DONE' or status == 'NO_MORE_TRIAL':
++                break
++        nniid = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $2}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++        cmd2 = 'nnictl experiment export {} --filename=result/cifar10_{}{}.json --type json'.format(nniid, tuner, i)
++        os.system(cmd2)
++
+diff --git a/examples/cifar/run.sh b/examples/cifar/run.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..4982b7014b02e6d8f44fad5f4e383558851ada1e
+--- /dev/null
++++ b/examples/cifar/run.sh
+@@ -0,0 +1,10 @@
++#!/bin/bash
++
++# run.sh
++
++mkdir -p results
++
++# --
++# DAWN submission
++
++time python cifar10.py > results/cifar-dawn.jl
+\ No newline at end of file
+diff --git a/examples/cifar/run2.py b/examples/cifar/run2.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..30c575aaa7a9b429d12dcf5224a7c087e13cb088
+--- /dev/null
++++ b/examples/cifar/run2.py
+@@ -0,0 +1,40 @@
++import os, sys
++import subprocess
++import time
++# experiments
++pwd = 'baoyu'
++
++# tuner
++#tuners = ['random', 'gp', 'smac', 'tpe']
++tuners = ['config_tuun']#, 'config_smac']
++
++for tuner in tuners:
++    for i in [1,11,111,1111,11111]:
++        cmd0 = 'fuser -k 6006/tcp'
++        os.system('echo {}|{}'.format(pwd,cmd0))
++        cmd1 = 'nnictl create --config {}{}.yml --port=6006'.format(tuner,i)
++        print(cmd1)
++        os.system(cmd1)
++        while True:
++            time.sleep(100)
++            l = 4
++            experiment = subprocess.check_output("nnictl experiment list | tail -{} | head -1".format(l),shell=True).decode("utf-8").split('\n')[0]  
++            status = experiment.split('Status: ')[1].split(' ')[0]
++            port = experiment.split('Port: ')[1].split(' ')[0]
++            #status = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $6}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++            #port = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $8}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++            print(l,experiment,status,port)
++            while port != '6006':
++                l = l+1
++                experiment = subprocess.check_output("nnictl experiment list | tail -{} | head -1".format(l),shell=True).decode("utf-8").split('\n')[0]  
++                status = experiment.split('Status: ')[1].split(' ')[0]
++                port = experiment.split('Port: ')[1].split(' ')[0]
++                #status = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $6}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++                #port = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $8}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++            print(l,experiment,status,port)
++            if status == 'DONE' or status == 'NO_MORE_TRIAL':
++                break
++        nniid = subprocess.check_output("nnictl experiment list | tail -{} | head -1 | awk '/:/ {{print $2}}'".format(l),shell=True).decode("utf-8").split('\n')[0] 
++        cmd2 = 'nnictl experiment export {} --filename=result/cifar10_{}{}.json --type json'.format(nniid, tuner, i)
++        os.system(cmd2)
++
+diff --git a/examples/cifar/search_space.json b/examples/cifar/search_space.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..bfe4f21f87a5d7c6a66d5e80b709046423f6faa5
+--- /dev/null
++++ b/examples/cifar/search_space.json
+@@ -0,0 +1,7 @@
++{
++    "lr_max":{"_type":"uniform", "_value":[0.0001, 0.2]},
++    "lr_final":{"_type":"uniform", "_value":[0.0001, 0.2]},
++    "weight_decay":{"_type":"uniform", "_value":[1e-4, 0.1]},
++    "batch_size":{"_type":"randint", "_value":[16, 256]},
++    "momentum":{"_type":"uniform", "_value":[0.1,0.999]}
++}
+diff --git a/examples/cifar/search_space1.json b/examples/cifar/search_space1.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..ff7fa65541f241e5f2f6a1204df38fb4b71c0b9b
+--- /dev/null
++++ b/examples/cifar/search_space1.json
+@@ -0,0 +1,7 @@
++{
++    "lr_max":{"_type":"uniform", "_value":[0.0001, 0.2]},
++    "lr_final":{"_type":"uniform", "_value":[0.0001, 0.2]},
++    "weight_decay":{"_type":"uniform", "_value":[1e-4, 0.1]},
++    "batch_size":{"_type":"uniform", "_value":[16.0, 256.0]},
++    "momentum":{"_type":"uniform", "_value":[0.1,0.999]}
++}
+diff --git a/examples/dawn/basenet.json b/examples/dawn/basenet.json
+new file mode 100755
+index 0000000000000000000000000000000000000000..3f87a767a805801a047e4cb45a59da98bf1a5517
+--- /dev/null
++++ b/examples/dawn/basenet.json
+@@ -0,0 +1,23 @@
++{
++    "version": "v1.0",
++    "author": "bkj",
++    "authorEmail": "ben@canfield.io",
++    "framework": "pytorch 0.3.1.post2",
++    "codeURL": "https://github.com/bkj/basenet/tree/49b2b61e5b9420815c64227c5a10233267c1fb14/examples",
++    "model": "Resnet18 + minor modifications",
++    "hardware": "V100 (AWS p3.2xlarge)",
++    "costPerHour": 3.060,
++    "timestamp": "2018-04-20",
++    "misc": {
++        "comments" : "Hit 0.94 threshold in 6/7 runs. Reporting approximately median run here.",
++        "commandLine" : "./cifar10.sh",
++        "params" : {
++            "optimizer" : "sgd w/ nesterov momentum",
++            "epochs" : 40,
++            "lr_schedule" : "one cycle per Leslie Smith -- increase from 0 to 0.1 linearly over 15 epochs, back to 0.005 over 15 epochs, then down to 0 over 5 epochs.  Any extra time spent at 0.0005.",
++            "weight_decay" : 5e-4,
++            "momentum" : 0.9,
++            "batch_size" : 128,
++        }
++    }
++}
+diff --git a/examples/dawn/basenet_dawn.tsv b/examples/dawn/basenet_dawn.tsv
+new file mode 100755
+index 0000000000000000000000000000000000000000..0d0fe9481b96f02e3e737d0855f7cbfc06a2abcd
+--- /dev/null
++++ b/examples/dawn/basenet_dawn.tsv
+@@ -0,0 +1,41 @@
++epoch	hours	top1Accuracy
++0	0.003508641587363349	55.55
++1	0.006513937910397847	65.62
++2	0.009536764687962003	74.83
++3	0.012568767666816711	75.66000000000001
++4	0.015597014096048143	79.17999999999999
++5	0.018631390664312575	79.14999999999999
++6	0.0216702620850669	83.65
++7	0.024692272411452398	79.71000000000001
++8	0.027740566465589735	83.78999999999999
++9	0.030775602261225384	78.21000000000001
++10	0.033793951206737095	85.15
++11	0.03682645208305783	84.95
++12	0.039851660993364124	81.04
++13	0.04292301966084374	83.14
++14	0.04596217632293701	82.11
++15	0.04898762815528446	79.17999999999999
++16	0.05204661183887058	84.98
++17	0.055087420211897956	84.77
++18	0.058125914070341324	85.28999999999999
++19	0.061184588935640126	84.87
++20	0.0642281475994322	85.64
++21	0.06726788024107615	87.69
++22	0.0703298607137468	89.58
++23	0.07337968620989058	88.22
++24	0.07640756865342459	88.81
++25	0.07944716102547116	91.18
++26	0.08250825656784905	91.39
++27	0.08555183801386092	92.10000000000001
++28	0.08858485188749102	93.14
++29	0.09160958170890808	93.99
++30	0.0946198488606347	94.08
++31	0.09764599925941891	94.15
++32	0.10066269311639997	94.19
++33	0.1036933634016249	94.28
++34	0.10669603122605217	94.3
++35	0.10971194055345324	94.23
++36	0.11277156300014919	94.31
++37	0.115811897582478	94.3
++38	0.11884934445222219	94.31
++39	0.12188066297107272	94.34
+diff --git a/examples/dev/cifar_distill/cifar10_distill.py b/examples/dev/cifar_distill/cifar10_distill.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..051a7c6866ba62a75c7e852957ee25a294933e81
+--- /dev/null
++++ b/examples/dev/cifar_distill/cifar10_distill.py
+@@ -0,0 +1,268 @@
++#!/usr/bin/env python
++
++"""
++    cifar10_distill.py
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++from time import time
++from PIL import Image
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++from basenet.vision import transforms as btransforms
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++from torch.autograd import Variable
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++
++# --
++# Helpers
++
++class DistillationWrapper(object):
++    def __init__(self, dataset, z):
++        self.dataset = dataset
++        self.z = z
++        
++        assert len(z) == len(dataset)
++    
++    def __getitem__(self, index):
++        
++        x, y = self.dataset[index]
++        z = self.z[index]
++        
++        return x, (y, z)
++    
++    def __len__(self):
++        return len(self.dataset)
++
++
++# --
++# CLI
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=5)
++    parser.add_argument('--lr-schedule', type=str, default='linear_cycle')
++    parser.add_argument('--lr-max', type=float, default=0.1)
++    parser.add_argument('--batch-size', type=int, default=128)
++    parser.add_argument('--seed', type=int, default=789)
++    parser.add_argument('--download', action="store_true")
++    
++    parser.add_argument('--weight-decay', type=float, default=0.0)
++    parser.add_argument('--momentum', type=float, default=0.9)
++    parser.add_argument('--distillation-alpha', type=float, default=0.5)
++    
++    return parser.parse_args()
++
++args = parse_args()
++
++set_seeds(args.seed)
++
++# --
++# IO
++
++print('cifar10.py: making dataloaders...', file=sys.stderr)
++
++transform_train = transforms.Compose([
++    btransforms.ReflectionPadding(margin=(4, 4)),
++    transforms.RandomCrop(32),
++    transforms.RandomHorizontalFlip(),
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++transform_test = transforms.Compose([
++    transforms.ToTensor(),
++    btransforms.NormalizeDataset(dataset='cifar10'),
++])
++
++try:
++    trainset = datasets.CIFAR10(root='./data', train=True, download=args.download, transform=transform_train)
++    testset  = datasets.CIFAR10(root='./data', train=False, download=args.download, transform=transform_test)
++except:
++    raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++
++# Distillation targets
++# test_preds   = np.load('test_preds_40.npy')
++
++# test_targets = np.load('test_targets.npy')
++# test_preds = test_preds[~np.isnan(test_preds).any(axis=(1, 2))]
++# top_models = np.argsort((test_preds.argmax(axis=-1) == test_targets).mean(axis=-1))[::-1]
++
++# test_preds = test_preds[top_models[:30]].mean(axis=0)
++# testset = DistillationWrapper(testset, test_preds)
++
++train_preds = np.load('train_preds_40.npy')
++# train_preds = train_preds[~np.isnan(train_preds).any(axis=(1, 2))]
++# train_preds = train_preds[top_models[:30]].mean(axis=0)
++trainset = DistillationWrapper(trainset, train_preds)
++
++
++trainloader = torch.utils.data.DataLoader(
++    trainset,
++    batch_size=args.batch_size,
++    shuffle=True,
++    num_workers=16,
++    pin_memory=True,
++)
++
++testloader = torch.utils.data.DataLoader(
++    testset,
++    batch_size=512,
++    shuffle=False,
++    num_workers=16,
++    pin_memory=True,
++)
++
++dataloaders = {
++    "train" : trainloader,
++    "test"  : testloader,
++}
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super(PreActBlock, self).__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10, loss_fn=F.cross_entropy):
++        super(ResNet18, self).__init__(loss_fn=loss_fn)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = self.prep(x)
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++# --
++# Define model
++
++print('cifar10.py: initializing model...', file=sys.stderr)
++
++def distillation_loss(alpha, T=4):
++    def _f(X, y):
++        log_X = F.log_softmax(X, dim=-1)
++        
++        hard_loss = F.nll_loss(log_X, y[0])
++        
++        y_soft_softmax = F.softmax(y[1] / T, dim=-1)
++        soft_loss = - (y_soft_softmax * log_X).sum(dim=-1).mean()
++        
++        return alpha * hard_loss + (1 - alpha) * soft_loss
++        
++    return _f
++
++
++loss_fn = distillation_loss(alpha=args.distillation_alpha)
++device = torch.device('cuda')
++model = ResNet18(loss_fn=loss_fn).to(device)
++print(model, file=sys.stderr)
++
++model.verbose = True
++
++# --
++# Initialize optimizer
++
++print('cifar10.py: initializing optimizer...', file=sys.stderr)
++
++lr_scheduler = getattr(HPSchedule, args.lr_schedule)(hp_max=args.lr_max, epochs=args.epochs)
++model.init_optimizer(
++    opt=torch.optim.SGD,
++    params=model.parameters(),
++    hp_scheduler={"lr" : lr_scheduler},
++    momentum=args.momentum,
++    weight_decay=args.weight_decay,
++    # nesterov=True,
++)
++
++# --
++# Train
++
++print('cifar10.py: training...', file=sys.stderr)
++t = time()
++for epoch in range(args.epochs):
++    train = model.train_epoch(dataloaders, mode='train')
++    test  = model.eval_epoch(dataloaders, mode='test')
++    print(json.dumps({
++        "epoch"     : int(epoch),
++        "lr"        : model.hp['lr'],
++        "test_acc"  : float(test['acc']),
++        "time"      : time() - t,
++        
++        "weight_decay" : float(args.weight_decay),
++        "momentum"     : float(args.momentum),
++        "alpha"        : float(args.distillation_alpha),
++    }))
++    sys.stdout.flush()
++
+diff --git a/examples/dev/cifar_distill/cmd.sh b/examples/dev/cifar_distill/cmd.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..30433080439baf68d0815f8769a253966913859b
+--- /dev/null
++++ b/examples/dev/cifar_distill/cmd.sh
+@@ -0,0 +1,61 @@
++#!/bin/bash
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.200000    --distillation-alpha 0.500000 > results/0.000000-0.200000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.200000    --distillation-alpha 0.250000 > results/0.000500-0.200000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.800000    --distillation-alpha 1.000000 > results/0.000000-0.800000-1.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.900000    --distillation-alpha 0.000000 > results/0.000500-0.900000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.900000    --distillation-alpha 1.000000 > results/0.000500-0.900000-1.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.990000    --distillation-alpha 0.250000 > results/0.000000-0.990000-0.250000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.800000    --distillation-alpha 0.750000 > results/0.000500-0.800000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.500000    --distillation-alpha 0.500000 > results/0.000000-0.500000-0.500000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.990000    --distillation-alpha 0.750000 > results/0.000000-0.990000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.800000    --distillation-alpha 0.750000 > results/0.000000-0.800000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.000000    --distillation-alpha 0.500000 > results/0.000000-0.000000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.990000    --distillation-alpha 0.000000 > results/0.000500-0.990000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.200000    --distillation-alpha 0.500000 > results/0.000500-0.200000-0.500000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.500000    --distillation-alpha 1.000000 > results/0.000000-0.500000-1.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.990000    --distillation-alpha 1.000000 > results/0.000500-0.990000-1.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.500000    --distillation-alpha 0.000000 > results/0.000500-0.500000-0.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.500000    --distillation-alpha 0.250000 > results/0.000000-0.500000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.900000    --distillation-alpha 0.250000 > results/0.000000-0.900000-0.250000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.800000    --distillation-alpha 1.000000 > results/0.000500-0.800000-1.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.200000    --distillation-alpha 0.000000 > results/0.000000-0.200000-0.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.200000    --distillation-alpha 0.250000 > results/0.000000-0.200000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.000000    --distillation-alpha 0.000000 > results/0.000000-0.000000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.000000    --distillation-alpha 0.500000 > results/0.000500-0.000000-0.500000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.000000    --distillation-alpha 0.750000 > results/0.000000-0.000000-0.750000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.990000    --distillation-alpha 0.750000 > results/0.000500-0.990000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.990000    --distillation-alpha 1.000000 > results/0.000000-0.990000-1.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.500000    --distillation-alpha 0.500000 > results/0.000500-0.500000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.500000    --distillation-alpha 0.750000 > results/0.000500-0.500000-0.750000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.200000    --distillation-alpha 0.000000 > results/0.000500-0.200000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.800000    --distillation-alpha 0.250000 > results/0.000500-0.800000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.800000    --distillation-alpha 0.500000 > results/0.000000-0.800000-0.500000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.200000    --distillation-alpha 0.750000 > results/0.000000-0.200000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.200000    --distillation-alpha 1.000000 > results/0.000000-0.200000-1.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.990000    --distillation-alpha 0.500000 > results/0.000500-0.990000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.000000    --distillation-alpha 0.750000 > results/0.000500-0.000000-0.750000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.000000    --distillation-alpha 0.250000 > results/0.000500-0.000000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.500000    --distillation-alpha 0.000000 > results/0.000000-0.500000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.900000    --distillation-alpha 0.750000 > results/0.000500-0.900000-0.750000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.500000    --distillation-alpha 0.250000 > results/0.000500-0.500000-0.250000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.990000    --distillation-alpha 0.250000 > results/0.000500-0.990000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.000000    --distillation-alpha 1.000000 > results/0.000000-0.000000-1.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.800000    --distillation-alpha 0.000000 > results/0.000000-0.800000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.500000    --distillation-alpha 1.000000 > results/0.000500-0.500000-1.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.900000    --distillation-alpha 0.750000 > results/0.000000-0.900000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.990000    --distillation-alpha 0.000000 > results/0.000000-0.990000-0.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.500000    --distillation-alpha 0.750000 > results/0.000000-0.500000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.800000    --distillation-alpha 0.250000 > results/0.000000-0.800000-0.250000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.900000    --distillation-alpha 0.000000 > results/0.000000-0.900000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.900000    --distillation-alpha 0.250000 > results/0.000500-0.900000-0.250000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.800000    --distillation-alpha 0.500000 > results/0.000500-0.800000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.000000    --distillation-alpha 0.000000 > results/0.000500-0.000000-0.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.800000    --distillation-alpha 0.000000 > results/0.000500-0.800000-0.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.000000    --distillation-alpha 0.250000 > results/0.000000-0.000000-0.250000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.200000    --distillation-alpha 0.750000 > results/0.000500-0.200000-0.750000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.990000    --distillation-alpha 0.500000 > results/0.000000-0.990000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.200000    --distillation-alpha 1.000000 > results/0.000500-0.200000-1.000000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.900000    --distillation-alpha 1.000000 > results/0.000000-0.900000-1.000000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.900000    --distillation-alpha 0.500000 > results/0.000500-0.900000-0.500000
++python cifar10_distill.py    --weight-decay 0.000000    --momentum 0.900000    --distillation-alpha 0.500000 > results/0.000000-0.900000-0.500000
++python cifar10_distill.py    --weight-decay 0.000500    --momentum 0.000000    --distillation-alpha 1.000000 > results/0.000500-0.000000-1.000000
+diff --git a/examples/dev/cifar_distill/make_commands.py b/examples/dev/cifar_distill/make_commands.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..aca38635e78dd2fbf3984ad67c06ce221ffe2442
+--- /dev/null
++++ b/examples/dev/cifar_distill/make_commands.py
+@@ -0,0 +1,26 @@
++
++import numpy as np
++import itertools
++
++CMD = (
++    "python cifar10_distill.py"
++    "    --weight-decay %f"
++    "    --momentum %f"
++    "    --distillation-alpha %f"
++    " > results/%f-%f-%f"
++)
++
++weight_decays = [5e-4, 0]
++momentums     = [0.99, 0.9, 0.8, 0.5, 0.2, 0.0]
++alphas        = [1.0, 0.75, 0.5, 0.25, 0.0]
++
++params = itertools.product(weight_decays, momentums, alphas)
++params = np.random.permutation(list(params))
++
++f = open('cmd.sh', 'w')
++f.write('#!/bin/bash\n')
++for weight_decay, momentum, alpha in params:
++     cmd = CMD % ((weight_decay, momentum, alpha) + (weight_decay, momentum, alpha))
++     print(cmd, file=f)
++
++f.close()
+\ No newline at end of file
+diff --git a/examples/dev/cifar_distill/run.sh b/examples/dev/cifar_distill/run.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..06489bc964659668a53c7ef3275a019b07885eb2
+--- /dev/null
++++ b/examples/dev/cifar_distill/run.sh
+@@ -0,0 +1,9 @@
++#!/bin/bash
++
++# run.sh
++
++python make_commands.py
++chmod +x cmd.sh
++
++
++python cifar10_distill.py --distillation-alpha 0.0
+\ No newline at end of file
+diff --git a/examples/dev/cifar_opt/cifar_opt.py b/examples/dev/cifar_opt/cifar_opt.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..ce1a8ca2291432fc4eeab91fb9d89bd4bf1ec5e3
+--- /dev/null
++++ b/examples/dev/cifar_opt/cifar_opt.py
+@@ -0,0 +1,249 @@
++#!/usr/bin/env python
++
++"""
++    cifar10.py
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++from time import time
++from PIL import Image
++from datetime import datetime
++from collections import OrderedDict
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++from basenet.vision import transforms as btransforms
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++from torch.autograd import Variable
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++
++import dlib
++
++# --
++# Helpers
++
++def dlib_find_max_global(f, bounds, **kwargs):
++    varnames = f.__code__.co_varnames[:f.__code__.co_argcount]
++    bound1_, bound2_ = [], []
++    for varname in varnames:
++        bound1_.append(bounds[varname][0])
++        bound2_.append(bounds[varname][1])
++    
++    return dlib.find_max_global(f, bound1_, bound2_, **kwargs)
++
++
++# --
++# CLI
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=10)
++    parser.add_argument('--weight-decay', type=float, default=5e-4)
++    parser.add_argument('--momentum', type=float, default=0.9)
++    parser.add_argument('--batch-size', type=int, default=128)
++    parser.add_argument('--seed', type=int, default=789)
++    parser.add_argument('--download', action="store_true")
++    return parser.parse_args()
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super(PreActBlock, self).__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
++        super(ResNet18, self).__init__(loss_fn=F.cross_entropy)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = self.prep(x)#.half())
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++
++if __name__ == "__main__":
++    args = parse_args()
++    
++    set_seeds(args.seed)
++    
++    # --
++    # IO
++    
++    print('cifar_opt.py: making dataloaders...', file=sys.stderr)
++    
++    transform_train = transforms.Compose([
++        btransforms.ReflectionPadding(margin=(4, 4)),
++        transforms.RandomCrop(32),
++        transforms.RandomHorizontalFlip(),
++        transforms.ToTensor(),
++        btransforms.NormalizeDataset(dataset='cifar10'),
++    ])
++    
++    transform_test = transforms.Compose([
++        transforms.ToTensor(),
++        btransforms.NormalizeDataset(dataset='cifar10'),
++    ])
++    
++    try:
++        trainset = datasets.CIFAR10(root='./data', train=True, download=args.download, transform=transform_train)
++        testset  = datasets.CIFAR10(root='./data', train=False, download=args.download, transform=transform_test)
++    except:
++        raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++        
++    trainloader = torch.utils.data.DataLoader(
++        trainset,
++        batch_size=args.batch_size,
++        shuffle=True,
++        num_workers=16,
++        pin_memory=True,
++    )
++    
++    testloader = torch.utils.data.DataLoader(
++        testset,
++        batch_size=512,
++        shuffle=False,
++        num_workers=16,
++        pin_memory=True,
++    )
++    
++    dataloaders = {
++        "train" : trainloader,
++        "test"  : testloader,
++    }
++    
++    def run_one(break1, break2, val1, val2):
++        
++        # try:
++            # set_seeds(args.seed) # Might have bad side effects
++            
++            if (break1 >= break2):
++                return float(-1)
++            
++            timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
++            params = OrderedDict([
++                ("timestamp",    timestamp),
++                ("break1",       break1),
++                ("break2",       break2),
++                ("val1",         10 ** val1),
++                ("val2",         10 ** val2),
++                ("momentum",     args.momentum),
++                ("weight_decay", args.weight_decay),
++            ])
++            
++            model = ResNet18().cuda()#.half()
++            
++            lr_scheduler = HPSchedule.piecewise_linear(
++                breaks=[0, break1, break2, args.epochs],
++                vals=[0, 10 ** val1, 10 ** val2, 0]
++            )
++            
++            model.init_optimizer(
++                opt=torch.optim.SGD,
++                params=model.parameters(),
++                hp_scheduler={"lr" : lr_scheduler},
++                momentum=args.momentum,
++                weight_decay=args.weight_decay,
++                nesterov=True,
++            )
++            
++            t = time()
++            for epoch in range(args.epochs):
++                train = model.train_epoch(dataloaders, mode='train')
++                test  = model.eval_epoch(dataloaders, mode='test')
++                
++                res = OrderedDict([
++                    ("params",   params),
++                    ("epoch",    int(epoch)),
++                    ("lr",       model.hp['lr']),
++                    ("test_acc", float(test['acc'])),
++                    ("time",     time() - t),
++                ])
++                print(json.dumps(res))
++                sys.stdout.flush()
++            
++            return float(test['acc'])
++        # except:
++            # return float(-1)
++    
++    print('cifar_opt.py: start', file=sys.stderr)
++    best_args, best_score = dlib_find_max_global(run_one, bounds={
++        "break1" : (0, args.epochs),
++        "break2" : (0, args.epochs),
++        "val1"   : (-3, 0),
++        "val2"   : (-3, 0),
++    }, num_function_calls=100, solver_epsilon=0.001)
++    
++    print(best_args, file=sys.stderr)
++    print(best_score, file=sys.stderr)
++    print('cifar_opt.py: done', file=sys.stderr)
+diff --git a/examples/dev/cifar_opt/cifar_opt2.py b/examples/dev/cifar_opt/cifar_opt2.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..a093860b33589b12a776ce433228d8f2eb28fbe9
+--- /dev/null
++++ b/examples/dev/cifar_opt/cifar_opt2.py
+@@ -0,0 +1,270 @@
++#!/usr/bin/env python
++
++"""
++    cifar10.py
++"""
++
++from __future__ import division, print_function
++
++import sys
++import json
++import argparse
++import numpy as np
++from time import time
++from PIL import Image
++from datetime import datetime
++from collections import OrderedDict
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++from torch.autograd import Variable
++torch.backends.cudnn.benchmark = True
++
++from torchvision import transforms, datasets
++
++import dlib
++
++# --
++# Helpers
++
++def dlib_find_max_global(f, bounds, **kwargs):
++    varnames = f.__code__.co_varnames[:f.__code__.co_argcount]
++    bound1_, bound2_ = [], []
++    for varname in varnames:
++        
++        bound1_.append(bounds[varname][0])
++        bound2_.append(bounds[varname][1])
++    
++    return dlib.find_max_global(f, bound1_, bound2_, **kwargs)
++
++
++# --
++# CLI
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--epochs', type=int, default=10)
++    parser.add_argument('--weight-decay', type=float, default=5e-4)
++    parser.add_argument('--batch-size', type=int, default=128)
++    parser.add_argument('--seed', type=int, default=789)
++    parser.add_argument('--download', action="store_true")
++    return parser.parse_args()
++
++# --
++# Model definition
++# Derived from models in `https://github.com/kuangliu/pytorch-cifar`
++
++class PreActBlock(nn.Module):
++    
++    def __init__(self, in_channels, out_channels, stride=1):
++        super(PreActBlock, self).__init__()
++        
++        self.bn1   = nn.BatchNorm2d(in_channels)
++        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
++        self.bn2   = nn.BatchNorm2d(out_channels)
++        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
++        
++        if stride != 1 or in_channels != out_channels:
++            self.shortcut = nn.Sequential(
++                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False)
++            )
++            
++    def forward(self, x):
++        out = F.relu(self.bn1(x))
++        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
++        out = self.conv1(out)
++        out = self.conv2(F.relu(self.bn2(out)))
++        return out + shortcut
++
++
++class ResNet18(BaseNet):
++    def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
++        super(ResNet18, self).__init__(loss_fn=F.cross_entropy)
++        
++        self.in_channels = 64
++        
++        self.prep = nn.Sequential(
++            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
++            nn.BatchNorm2d(64),
++            nn.ReLU()
++        )
++        
++        self.layers = nn.Sequential(
++            self._make_layer(64, 64, num_blocks[0], stride=1),
++            self._make_layer(64, 128, num_blocks[1], stride=2),
++            self._make_layer(128, 256, num_blocks[2], stride=2),
++            self._make_layer(256, 256, num_blocks[3], stride=2),
++        )
++        
++        self.classifier = nn.Linear(512, num_classes)
++        
++    def _make_layer(self, in_channels, out_channels, num_blocks, stride):
++        
++        strides = [stride] + [1] * (num_blocks-1)
++        layers = []
++        for stride in strides:
++            layers.append(PreActBlock(in_channels=in_channels, out_channels=out_channels, stride=stride))
++            in_channels = out_channels
++        
++        return nn.Sequential(*layers)
++    
++    def forward(self, x):
++        x = self.prep(x.half())
++        
++        x = self.layers(x)
++        
++        x_avg = F.adaptive_avg_pool2d(x, (1, 1))
++        x_avg = x_avg.view(x_avg.size(0), -1)
++        
++        x_max = F.adaptive_max_pool2d(x, (1, 1))
++        x_max = x_max.view(x_max.size(0), -1)
++        
++        x = torch.cat([x_avg, x_max], dim=-1)
++        
++        x = self.classifier(x)
++        
++        return x
++
++
++if __name__ == "__main__":
++    args = parse_args()
++    
++    set_seeds(args.seed)
++    
++    # --
++    # IO
++    
++    cifar10_stats = {
++        "mean" : (0.4914, 0.4822, 0.4465),
++        "std"  : (0.24705882352941178, 0.24352941176470588, 0.2615686274509804),
++    }
++    
++    transform_train = transforms.Compose([
++        transforms.Lambda(lambda x: np.asarray(x)),
++        transforms.Lambda(lambda x: np.pad(x, [(4, 4), (4, 4), (0, 0)], mode='reflect')),
++        transforms.Lambda(lambda x: Image.fromarray(x)),
++        transforms.RandomCrop(32),
++        
++        transforms.RandomHorizontalFlip(),
++        transforms.ToTensor(),
++        transforms.Normalize(cifar10_stats['mean'], cifar10_stats['std']),
++    ])
++    
++    transform_test = transforms.Compose([
++        transforms.ToTensor(),
++        transforms.Normalize(cifar10_stats['mean'], cifar10_stats['std']),
++    ])
++    
++    try:
++        trainset = datasets.CIFAR10(root='../data', train=True, download=args.download, transform=transform_train)
++        testset  = datasets.CIFAR10(root='../data', train=False, download=args.download, transform=transform_test)
++    except:
++        raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
++        
++    trainloader = torch.utils.data.DataLoader(
++        trainset,
++        batch_size=args.batch_size,
++        shuffle=True,
++        num_workers=16,
++        pin_memory=True,
++    )
++    
++    testloader = torch.utils.data.DataLoader(
++        testset,
++        batch_size=512,
++        shuffle=False,
++        num_workers=16,
++        pin_memory=True,
++    )
++    
++    dataloaders = {
++        "train" : trainloader,
++        "test"  : testloader,
++    }
++    
++    def run_one(lr_break1, lr_break2, lr1, lr2, mo_break, mo0, mo1, mo2):
++        
++        try:
++        
++            # --
++            # Validate
++            
++            if (lr_break1 > lr_break2):
++                return float(-1)
++            
++            # set_seeds(args.seed) # Might have bad side effects
++            
++            timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
++            params = OrderedDict([
++                ("timestamp",    timestamp),
++                ("lr_break1",    lr_break1),
++                ("lr_break2",    lr_break2),
++                ("lr1",          10 ** lr1),
++                ("lr2",          10 ** lr2),
++                ("mo0",          1 - 10 ** mo0),
++                ("mo1",          1 - 10 ** mo1),
++                ("mo2",          1 - 10 ** mo2),
++                ("weight_decay", args.weight_decay),
++            ])
++            
++            model = ResNet18().cuda().half()
++            
++            lr_scheduler = HPSchedule.piecewise_linear(
++                breaks=[0, lr_break1, lr_break2, args.epochs],
++                vals=[0, 10 ** lr1, 10 ** lr2, 0]
++            )
++            mo_scheduler = HPSchedule.piecewise_linear(
++                breaks=[0, mo_break, args.epochs],
++                vals=[1 - 10 ** mo0, 1 - 10 ** mo1, 1 - 10 ** mo2]
++            )
++            
++            model.init_optimizer(
++                opt=torch.optim.SGD,
++                params=model.parameters(),
++                hp_scheduler={
++                    "lr"       : lr_scheduler,
++                    "momentum" : mo_scheduler,
++                },
++                weight_decay=args.weight_decay,
++                nesterov=True,
++            )
++            
++            t = time()
++            for epoch in range(args.epochs):
++                train = model.train_epoch(dataloaders, mode='train')
++                test  = model.eval_epoch(dataloaders, mode='test')
++                
++                print(json.dumps(OrderedDict([
++                    ("params",   params),
++                    ("epoch",    int(epoch)),
++                    ("lr",       model.hp['lr']),
++                    ("mo",       model.hp['momentum']),
++                    ("test_acc", float(test['acc'])),
++                    ("time",     time() - t),
++                ])))
++                sys.stdout.flush()
++            
++            return float(test['acc'])
++        except:
++            return float(-1)
++    
++    best_args, best_score = dlib_find_max_global(run_one, bounds={
++        "lr_break1" : (0, 10),
++        "lr_break2" : (0, 10),
++        "lr1"       : (-3, 0),
++        "lr2"       : (-3, 0),
++        
++        "mo_break"  : (0, 10),
++        "mo0"       : (-3, 0),
++        "mo1"       : (-3, 0),
++        "mo2"       : (-3, 0),
++    }, num_function_calls=100, solver_epsilon=0.001)
++    
++    print(best_args, file=sys.stderr)
++    print(best_score, file=sys.stderr)
++
+diff --git a/examples/dev/cifar_opt/run.sh b/examples/dev/cifar_opt/run.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..ac2cfab524a3ca10f8c945d5d81137f8f2e0372e
+--- /dev/null
++++ b/examples/dev/cifar_opt/run.sh
+@@ -0,0 +1,7 @@
++#!/bin/bash
++
++# runs.h
++
++python cifar_opt.py --epochs 30 > results/cifar_opt-30.jl
++
++# CUDA_VISIBLE_DEVICES=1 python cifar_opt2.py > cifar_opt2.jl
+diff --git a/examples/nbsgd/nbsgd.py b/examples/nbsgd/nbsgd.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..d663996a52d961dda720c7c97f0ed668221b28d4
+--- /dev/null
++++ b/examples/nbsgd/nbsgd.py
+@@ -0,0 +1,163 @@
++#!/usr/bin/env python
++
++"""
++    nbsgd.py
++"""
++
++import os
++import sys
++import json
++import argparse
++import numpy as np
++from time import time
++
++import torch
++from torch import nn
++from torch.nn import functional as F
++from torch.autograd import Variable
++from torch.utils import data
++
++from basenet import BaseNet
++from basenet.hp_schedule import HPSchedule
++from basenet.helpers import to_numpy, set_seeds
++
++# --
++# Helpers
++
++def calc_r(y_i, x, y):
++    x = x.sign()
++    p = x[np.argwhere(y == y_i)[:,0]].sum(axis=0) + 1
++    q = x[np.argwhere(y != y_i)[:,0]].sum(axis=0) + 1
++    p, q = np.asarray(p).squeeze(), np.asarray(q).squeeze()
++    return np.log((p / p.sum()) / (q / q.sum()))
++
++# --
++# IO
++
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--x-train', type=str, default='./data/aclImdb/X_train.npy')
++    parser.add_argument('--x-train-words', type=str, default='./data/aclImdb/X_train_words.npy')
++    parser.add_argument('--y-train', type=str, default='./data/aclImdb/y_train.npy')
++    
++    parser.add_argument('--x-test', type=str, default='./data/aclImdb/X_test.npy')
++    parser.add_argument('--x-test-words', type=str, default='./data/aclImdb/X_test_words.npy')
++    parser.add_argument('--y-test', type=str, default='./data/aclImdb/y_test.npy')
++    
++    parser.add_argument('--epochs', type=int, default=4)
++    parser.add_argument('--lr-schedule', type=str, default='constant')
++    parser.add_argument('--lr-max', type=float, default=0.02)
++    parser.add_argument('--weight-decay', type=float, default=1e-6)
++    parser.add_argument('--batch-size', type=int, default=256)
++    
++    parser.add_argument('--vocab-size', type=int, default=200000)
++    
++    parser.add_argument('--seed', type=int, default=123)
++    
++    return parser.parse_args()
++
++args = parse_args()
++
++set_seeds(args.seed)
++
++# --
++# IO
++
++print('nbsgd.py: making dataloaders...', file=sys.stderr)
++
++X_train       = np.load(args.x_train).item()
++
++train_sel = np.random.choice(X_train.shape[0], 100, replace=False)
++X_train = X_train[train_sel]
++
++X_train_words = np.load(args.x_train_words).item()[train_sel]
++y_train       = np.load(args.y_train)[train_sel]
++
++X_test        = np.load(args.x_test).item()
++X_test_words  = np.load(args.x_test_words).item()
++y_test        = np.load(args.y_test)
++
++train_dataset = torch.utils.data.dataset.TensorDataset(
++    torch.from_numpy(X_train_words.toarray()).long(),
++    torch.from_numpy(y_train).long()
++)
++test_dataset = torch.utils.data.dataset.TensorDataset(
++    torch.from_numpy(X_test_words.toarray()).long(),
++    torch.from_numpy(y_test).long(),
++)
++
++dataloaders = {
++    "train" : torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True),
++    "test"  : torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False),
++}
++
++n_classes = int(y_train.max()) + 1
++r = np.column_stack([calc_r(i, X_train, y_train) for i in range(n_classes)])
++
++# --
++# Model definition
++
++class DotProdNB(BaseNet):
++    def __init__(self, vocab_size, n_classes, r, w_adj=0.4, r_adj=10):
++        
++        super().__init__()
++        
++        # Init w
++        self.w = nn.Embedding(vocab_size + 1, 1, padding_idx=0)
++        self.w.weight.data.uniform_(-0.1, 0.1)
++        self.w.weight.data[0] = 0
++        
++        # Init r
++        self.r = nn.Embedding(vocab_size + 1, n_classes)
++        self.r.weight.data = torch.Tensor(np.concatenate([np.zeros((1, n_classes)), r])).to(torch.device('cuda'))
++        self.r.weight.requires_grad = False
++        
++        self.w_adj = w_adj
++        self.r_adj = r_adj
++        
++    def forward(self, feat_idx):
++        w = self.w(feat_idx) + self.w_adj
++        r = self.r(feat_idx)
++        
++        x = (w * r).sum(dim=1)
++        x =  x / self.r_adj
++        return x
++
++# --
++# Define model
++
++print('nbsgd.py: initializing model...', file=sys.stderr)
++
++model = DotProdNB(args.vocab_size, n_classes, r).to(torch.device('cuda'))
++model.verbose = True
++print(model, file=sys.stderr)
++
++# --
++# Initializing optimizer 
++
++lr_scheduler = getattr(HPSchedule, args.lr_schedule)(hp_max=args.lr_max, epochs=args.epochs)
++model.init_optimizer(
++    opt=torch.optim.Adam,
++    params=[p for p in model.parameters() if p.requires_grad],
++    hp_scheduler={"lr" : lr_scheduler},
++    weight_decay=args.weight_decay,
++)
++
++# --
++# Train
++
++print('nbsgd.py: training...', file=sys.stderr)
++t = time()
++for epoch in range(args.epochs):
++    train = model.train_epoch(dataloaders, mode='train', metric_fns=['n_correct'])
++    test  = model.eval_epoch(dataloaders, mode='test', metric_fns=['n_correct'])
++    print(json.dumps({
++        "epoch"     : int(epoch),
++        "lr"        : model.hp['lr'],
++        "test_acc"  : float(test['acc']),
++        "time"      : time() - t,
++    }))
++    sys.stdout.flush()
++
++model.save('weights')
+diff --git a/examples/nbsgd/prep.py b/examples/nbsgd/prep.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..8b12793d52ff92bbd1fc34412c0afd7b7e629a86
+--- /dev/null
++++ b/examples/nbsgd/prep.py
+@@ -0,0 +1,96 @@
++#!/usr/bin/env python
++# -*- coding: utf-8 -*-
++
++"""
++    nbsgd.py
++"""
++
++import os
++import re
++import sys
++import string
++import argparse
++import numpy as np
++
++from scipy.sparse import coo_matrix, csr_matrix
++from sklearn.feature_extraction.text import CountVectorizer
++
++
++# --
++# Helpers
++
++def texts_from_folders(src, names):
++    texts, labels = [], []
++    for idx, name in enumerate(names):
++        path = os.path.join(src, name)
++        for fname in sorted(os.listdir(path)):
++            fpath = os.path.join(path, fname)
++            texts.append(open(fpath, 'rb').read())
++            labels.append(idx)
++    
++    return texts,np.array(labels)
++
++
++def bow2adjlist(X, maxcols=None):
++    x = coo_matrix(X)
++    _, counts = np.unique(x.row, return_counts=True)
++    pos = np.hstack([np.arange(c) for c in counts])
++    adjlist = csr_matrix((x.col + 1, (x.row, pos)))
++    datlist = csr_matrix((x.data, (x.row, pos)))
++    
++    if maxcols is not None:
++        adjlist, datlist = adjlist[:,:maxcols], datlist[:,:maxcols]
++    
++    return adjlist, datlist
++
++
++def parse_args():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--max-features', type=int, default=200000)
++    parser.add_argument('--max-words', type=int, default=1000)
++    parser.add_argument('--ngram-range', type=str, default='1,3')
++    return parser.parse_args()
++
++
++if __name__ == "__main__":
++    
++    args = parse_args()
++    
++    # --
++    # IO
++    print("prep.py: loading", file=sys.stderr)
++    
++    text_train, y_train = texts_from_folders('data/aclImdb/train', ['neg', 'pos'])
++    text_test, y_test = texts_from_folders('data/aclImdb/test', ['neg', 'pos'])
++    
++    # --
++    # Preprocess
++    print("prep.py: preprocessing", file=sys.stderr)
++    
++    re_tok = re.compile('([%s“”¨«»®´·º½¾¿¡§£₤‘’])' % string.punctuation)
++    tokenizer = lambda x: re_tok.sub(r' \1 ', x).split()
++    
++    vectorizer = CountVectorizer(
++        ngram_range=tuple(map(int, args.ngram_range.split(','))),
++        tokenizer=tokenizer, 
++        max_features=args.max_features
++    )
++    X_train = vectorizer.fit_transform(text_train)
++    X_test = vectorizer.transform(text_test)
++    
++    X_train_words, _ = bow2adjlist(X_train, maxcols=args.max_words)
++    X_test_words, _ = bow2adjlist(X_test, maxcols=args.max_words)
++    
++    # --
++    # Save
++    print("prep.py: saving", file=sys.stderr)
++    
++    np.save('./data/aclImdb/X_train', X_train)
++    np.save('./data/aclImdb/X_test', X_test)
++    
++    np.save('./data/aclImdb/X_train_words', X_train_words)
++    np.save('./data/aclImdb/X_test_words', X_test_words)
++    
++    np.save('./data/aclImdb/y_train', y_train)
++    np.save('./data/aclImdb/y_test', y_test)
++
+diff --git a/examples/nbsgd/run.sh b/examples/nbsgd/run.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..917e0dd2fed76231d7d0b507e8f8e555d01e2df7
+--- /dev/null
++++ b/examples/nbsgd/run.sh
+@@ -0,0 +1,18 @@
++#!/bin/bash
++
++# run.sh
++
++# --
++# Download data
++
++mkdir -p data
++wget http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz
++tar -xzvf aclImdb_v1.tar.gz && rm aclImdb_v1.tar.gz
++mv aclImdb ./data/aclImdb
++
++# --
++# Run
++
++python prep.py
++python nbsgd.py
++
+diff --git a/examples/plot.py b/examples/plot.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..1b75d0c7241ae74ea01d1d68b163deb0f2420ea7
+--- /dev/null
++++ b/examples/plot.py
+@@ -0,0 +1,37 @@
++#!/usr/bin/env python
++
++import os
++import sys
++import json
++import pandas as pd
++import numpy as np
++from rsub import *
++import matplotlib as mpl
++from matplotlib import pyplot as plt
++from matplotlib import pylab as pl
++
++def smart_json_loads(x):
++    try:
++        return json.loads(x)
++    except:
++        pass
++
++colors = pl.cm.jet(np.linspace(0,1,101))
++
++all_data = []
++for p in sys.argv[1:]:
++    data = list(filter(None, map(smart_json_loads, open(p))))
++    
++    acc   = [d['test_acc'] for d in data]
++    epoch = [d['epoch'] for d in data]
++    _ = plt.plot(acc, alpha=0.75, label=p)
++
++
++_ = plt.legend(loc='lower right')
++_ = plt.grid(alpha=0.25)
++for t in np.arange(0.90, 1.0, 0.01):
++    _ = plt.axhline(t, c='grey', alpha=0.25, lw=1)
++
++_ = plt.ylim(0.5, 1.0)
++# _ = plt.xlim(0, 40)
++show_plot()
+diff --git a/requirements.txt b/requirements.txt
+new file mode 100755
+index 0000000000000000000000000000000000000000..78236ccab190f64e37ea4993ab118a5d6ea9cd55
+--- /dev/null
++++ b/requirements.txt
+@@ -0,0 +1,2 @@
++tqdm==4.19.5
++numpy==1.14.2
+\ No newline at end of file
+diff --git a/setup.py b/setup.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..1e9af291da8249df127c04ab2d22c27b418f1fe6
+--- /dev/null
++++ b/setup.py
+@@ -0,0 +1,15 @@
++#!/usr/bin/env/python
++
++from setuptools import setup, find_packages
++
++setup(
++    name='basenet',
++    author='Ben Johnson',
++    author_email='bkj.322@gmail.com',
++    classifiers=[],
++    description='pytorch training tools',
++    keywords=['basenet'],
++    license='ALV2',
++    packages=find_packages(),
++    version="0.0.0"
++)
+\ No newline at end of file
