@@ -70,13 +70,13 @@ magnitudes = [[args["magnitude1_0"], args["magnitude1_1"]],
               [args["magnitude3_0"], args["magnitude3_1"]],
               [args["magnitude4_0"], args["magnitude4_1"]],
               [args["magnitude5_0"], args["magnitude5_1"]]]
-#operations = [["shearX", "translateX"],
-#              ["shearY", "translateY"],
-#              ["shearY", "translateY"],
-#              ["shearY", "translateY"],
-#              ["shearY", "translateY"]]
-#probs = [[0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7]]          
-#magnitudes = [[0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7], [0.6, 0.7]]
+
+assert args["policy1_0"] != args["policy1_1"], "policy1_0 should be unequal to policy1_1"
+assert args["policy2_0"] != args["policy2_1"], "policy2_0 should be unequal to policy2_1"
+assert args["policy3_0"] != args["policy3_1"], "policy3_0 should be unequal to policy3_1"
+assert args["policy4_0"] != args["policy4_1"], "policy4_0 should be unequal to policy4_1"
+assert args["policy5_0"] != args["policy5_1"], "policy5_0 should be unequal to policy5_1"
+
 ## --
 # IO
 if args['dataset'] == 'cifar10':
@@ -101,6 +101,28 @@ if args['dataset'] == 'cifar10':
         testset  = datasets.CIFAR10(root='./data', train=False, download=args["download"], transform=transform_test)
     except:
         raise Exception('cifar10.py: error loading data -- try rerunning w/ `--download` flag')
+elif args['dataset'] == 'cifar100':
+    print('cifar10.py: making dataloaders...', file=sys.stderr)
+
+    transform_train = transforms.Compose([
+        # btransforms.ReflectionPadding(margin=(4, 4)),
+        # transforms.RandomCrop(32),
+        # transforms.RandomHorizontalFlip(),
+        Policy(operations, probs, magnitudes),
+        transforms.ToTensor(),
+        btransforms.NormalizeDataset(dataset='cifar10'),
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        btransforms.NormalizeDataset(dataset='cifar10'),
+    ])
+
+    try:
+        trainset = datasets.CIFAR100(root='./data', train=True, download=args["download"], transform=transform_train)
+        testset  = datasets.CIFAR100(root='./data', train=False, download=args["download"], transform=transform_test)
+    except:
+        raise Exception('cifar100.py: error loading data -- try rerunning w/ `--download` flag')
 else:
     print('svhn.py: making dataloaders...', file=sys.stderr)
     transform_train = transforms.Compose([
@@ -240,7 +262,7 @@ print(model, file=sys.stderr)
 print('initializing optimizer...', file=sys.stderr)
 
 if args["lr_schedule"] == 'linear_cycle':
-    lr_scheduler = HPSchedule.linear_cycle(hp_max=args["lr_max"], epochs=args["epochs"], extra=args["extra"])
+    lr_scheduler = HPSchedule.linear_cycle(hp_add=args["lr_max"]-0.005, epochs=args["epochs"], extra=args["extra"])
 elif args["lr_schedule"] == 'sgdr':
     lr_scheduler = HPSchedule.sgdr(
         hp_init=args["lr_max"],
