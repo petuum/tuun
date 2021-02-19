@@ -262,7 +262,7 @@ print(model, file=sys.stderr)
 print('initializing optimizer...', file=sys.stderr)
 
 if args["lr_schedule"] == 'linear_cycle':
-    lr_scheduler = HPSchedule.linear_cycle(hp_add=args["lr_max"]-0.005, epochs=args["epochs"], extra=args["extra"])
+    lr_scheduler = HPSchedule.linear_cycle(hp_max=args["lr_max"], epochs=args["epochs"], extra=args["extra"])
 elif args["lr_schedule"] == 'sgdr':
     lr_scheduler = HPSchedule.sgdr(
         hp_init=args["lr_max"],
@@ -270,7 +270,7 @@ elif args["lr_schedule"] == 'sgdr':
         t_mult=args["sgdr_t_mult"],
     )
 else:
-    lr_scheduler = getattr(HPSchedule, args["lr_schedule"])(hp_max=args["lr_max"], epochs=args["epochs"])
+    lr_scheduler = getattr(HPSchedule, args["lr_schedule"])(hp_add=args["lr_max"]-0.005, epochs=args["epochs"])
 
 model.init_optimizer(
     opt=torch.optim.SGD,
