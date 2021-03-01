@@ -21,13 +21,19 @@ try:
 except:
     pass
 
+# GPyStan models
+try:
+    from .models import GpystanGp
+except:
+    pass
+
 # Scikit-learn models
 try:
     from .models import SklearnPenn
 except:
     pass
 
-# Gpytorch models
+# GPyTorch models
 try:
     from .models import GpytorchGp
     from .models import GpytorchProductGp

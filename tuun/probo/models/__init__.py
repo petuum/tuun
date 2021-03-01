@@ -26,7 +26,13 @@ try:
 except:
     pass
 
-# Gpytorch models
+# GPyStan models
+try:
+    from .gp_gpystan import GpystanGp
+except:
+    pass
+
+# GPyTorch models
 try:
     from .gp_gpytorch import GpytorchGp
     from .gp_gpytorch_product import GpytorchProductGp
