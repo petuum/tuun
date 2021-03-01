@@ -2,6 +2,7 @@
 Main interface for Tuun.
 """
 from argparse import Namespace
+import copy
 import numpy as np
 
 from .backend import ProboBackend, DragonflyBackend
@@ -125,6 +126,7 @@ class Tuun:
             optimization block which can have a unique domain type. Each element tuple
             consists of (domain type, domain bounds specification).
         """
+        search_space_list_init = copy.deepcopy(search_space_list)
         search_space_list = self._format_search_space_list(search_space_list)
 
         # Convert search_space_list to ProBO format.
@@ -138,7 +140,7 @@ class Tuun:
         self.config.backend = 'probo'
 
         # Set model_config
-        self._set_model_config_from_list(domain_types)
+        self._set_model_config_from_list(search_space_list_init, domain_types)
 
         # Set acqoptimizer_config
         self._set_acqoptimizer_config_from_list(domain_types)
@@ -160,7 +162,7 @@ class Tuun:
 
         return search_space_list
 
-    def _set_model_config_from_list(self, domain_types):
+    def _set_model_config_from_list(self, search_space_list, domain_types):
         """
         Helper function for self.set_config_from_list to update self.config.model_config
         attribute.
@@ -169,6 +171,20 @@ class Tuun:
             self.config.model_config = {
                 'name': 'standistmatgp',
                 'model_str': 'optfixedsig',
+                'ig1': 4.0,
+                'ig2': 3.0,
+                'n1': 1.0,
+                'n2': 1.0,
+                'sigma': 1e-5,
+                'niter': 70,
+                'domain_spec': domain_types,
+            }
+        elif self.config.model_config.get('name') == 'gpystangp':
+            self.config.model_config = {
+                'name': 'gpystangp',
+                'ndimx': len(search_space_list),
+                'model_str': 'optfixedsig',
+                'kernel_str': 'rbf_ard',
                 'ig1': 4.0,
                 'ig2': 3.0,
                 'n1': 1.0,
