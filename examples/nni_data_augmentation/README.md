@@ -1,35 +1,52 @@
-## Tuun data augmentation
-##### Installation
-###### This example
+# Tuun data augmentation
+This example shows how Tuun can be used to search data augmentation policies. The model used in this example is [Resnet18](https://github.com/bkj/basenet/blob/819db22359e77ae6b4d0424d1379b84999fa20ac/examples/cifar/cifar10.py#L125) in the [Basenet](https://github.com/bkj/basenet) repo.
+## Environment setup
+### Python environment
+#### Conda(recommended)
 ```shell
 conda create -n augmentation python=3.6 pip -y
 conda activate augmentation
+```
+#### Python venv(requires python>=3.6)
+```shell
+python -m venv env
+source env/bin/activate
+```
+### Install dependencies
+First `cd` into this folder, then
+```shell
 pip install -r requirements.txt
-## note cuda is 9.0 here; you can change it to fit your cuda version
+```
+#### Install PyTorch
+##### Conda
+```shell
+# Note cuda is 9.0 here; you can change it to fit your cuda version
 conda install -y pytorch torchvision cuda90 -c pytorch
-python setup.py install
+```
+##### Python venv
+Make sure cuda is installed correctly as required by PyTorch, then
+```shell
+pip install torch torchvision
 ```
 
-###### [Tuun](https://github.com/petuum/tuun)
+#### Install [Tuun](https://github.com/petuum/tuun)
 ```shell
-cd ..
-pip install -r requirements/requirements_dev.txt
-python tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
+pip install -r $(pwd)/../../requirements/requirements_dev.txt
+python $(pwd)/../../tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
 ```
 Include Tuun in PYTHONPATH.
 ```shell
-export PYTHONPATH="{TUUN_REPO_PARENT_DIR_PATH}/tuun:$PYTHONPATH"
+export PYTHONPATH=$(pwd)/../../tuun:$PYTHONPATH
 ```
 
-###### [NNI](https://github.com/microsoft/nni)
+#### Install [NNI](https://github.com/microsoft/nni)
 ```shell
 python -m pip install --upgrade nni
 ```
 
-#### Run NNI Experiments
+## Run NNI Experiments
 
-Specify the code directory for Tuun `nni_config.yml` by changing `codeDir`,
-then run
+Specify the code directory for Tuun `nni_config.yml` by changing `codeDir`, then
 ```shell
 nnictl create --config nni_config.yml
 ```
