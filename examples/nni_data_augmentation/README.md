@@ -20,12 +20,12 @@ pip install -r requirements.txt
 #### Install PyTorch
 ##### Conda
 ```shell
-# Note cuda is 9.0 here; you can change it to fit your cuda version
+# Note that cuda version is set to 9.0 here, you may change it to fit your needs
 conda install -y pytorch torchvision cuda90 -c pytorch
 ```
 ##### Python venv
-Make sure cuda is installed correctly as required by PyTorch, then
 ```shell
+# Make sure cuda is installed correctly as required by PyTorch, then
 pip install torch torchvision
 ```
 
@@ -33,9 +33,7 @@ pip install torch torchvision
 ```shell
 pip install -r $(pwd)/../../requirements/requirements_dev.txt
 python $(pwd)/../../tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
-```
-Include Tuun in PYTHONPATH.
-```shell
+# Include Tuun in PYTHONPATH.
 export PYTHONPATH=$(pwd)/../../tuun:$PYTHONPATH
 ```
 
