@@ -34,7 +34,7 @@ pip install torch torchvision
 pip install -r $(pwd)/../../requirements/requirements_dev.txt
 python $(pwd)/../../tuun/probo/models/stan/compile_models.py -m gp_distmat_fixedsig
 # Include Tuun in PYTHONPATH.
-export PYTHONPATH=$(pwd)/../../tuun:$PYTHONPATH
+export PYTHONPATH=$(pwd)/../../:$PYTHONPATH
 ```
 
 #### Install [NNI](https://github.com/microsoft/nni)
