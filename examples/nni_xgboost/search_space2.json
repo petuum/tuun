@@ -1,0 +1,13 @@
+{
+    "colsample_bylevel":{"_type":"uniform","_value":[0.6, 0.7]},
+    "colsample_bytree":{"_type":"uniform","_value":[0.6, 0.7]},
+    "gamma":{"_type":"uniform","_value":[0.01, 1]},
+    "learning_rate":{"_type":"uniform","_value":[0.0001, 1]},
+    "max_delta_step":{"_type":"uniform","_value":[0.1, 10]},
+    "max_depth":{"_type":"uniform","_value":[6, 15]},
+    "min_child_weight":{"_type":"uniform","_value":[10, 500]},
+    "n_estimators":{"_type":"uniform","_value":[10, 100]},
+    "reg_alpha":{"_type":"uniform","_value":[0.1, 100]},
+    "reg_lambda":{"_type":"uniform","_value":[0.1, 100]},
+    "subsample":{"_type":"uniform","_value":[0.4, 0.7]}
+}

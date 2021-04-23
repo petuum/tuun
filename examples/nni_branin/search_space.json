@@ -1,0 +1,4 @@
+{
+    "x1":{"_type":"uniform","_value":[-5.0, 10.0]},
+    "x2":{"_type":"uniform","_value":[0.0, 15.0]}
+}
