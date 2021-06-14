@@ -116,7 +116,7 @@ class AcqFunction:
         """
 
         # Convert data to correct format
-        acq_data = Namespace
+        acq_data = Namespace()
         acq_data.x = list(data.x)
         acq_data.y = np.array(data.y).reshape(-1)
 

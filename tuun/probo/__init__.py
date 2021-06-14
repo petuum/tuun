@@ -27,7 +27,7 @@ try:
 except:
     pass
 
-# Gpytorch models
+# GPyTorch models
 try:
     from .models import GpytorchGp
     from .models import GpytorchProductGp
