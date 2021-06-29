@@ -65,6 +65,7 @@ def json2space(in_x, name=NodeType.ROOT):
             out_y.append(json2space(x_i, name + '[%d]' % i))
     return out_y
 
+
 class TuunTuner(Tuner):
     """
     Tuun as a custom Tuner for NNI.

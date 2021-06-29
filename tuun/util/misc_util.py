@@ -4,12 +4,44 @@ Miscellaneous utilities.
 
 from argparse import Namespace
 import os
+import string
+import random
+
+
+def shortuid():
+    """
+    Generates a 8-bit alphanumeric uid
+
+    Returns
+    -------
+    str
+        The UID.
+    """
+    chars = string.ascii_lowercase + string.digits
+    return ''.join(random.choices(chars, k=8))
+
+
+def dict_to_listspace(search_space):
+    """
+    Converts search_space from dict to list type according to probo format.
+
+    Parameters
+    ----------
+    search_space: dict
+        The search space as a dictionary of format {'param_1': (type, range)}.
+
+    Returns
+    -------
+    list
+       The search space as list of format [(type, range)].
+    """
+    return list(search_space.values())
 
 
 def dict_to_namespace(params):
     """
     If params is a dict, convert it to a Namespace, and return it.
-    
+
     Parameters
     ----------
     params : Namespace_or_dict

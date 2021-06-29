@@ -14,7 +14,7 @@ config = {
     'acqoptimizer_config': {'name': 'default', 'max_iter': 200},
 
     # configure domain
-    'domain_config': ('real', [-5, 5]),
+    'domain_config': {'x1': ('real', [-5, 5])}
 }
 tu = Tuun(config)
 

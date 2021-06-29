@@ -16,7 +16,7 @@ config = {
     },
     'acqfunction_config': {'name': 'default', 'acq_str': 'ei', 'n_gen': 500},
     'acqoptimizer_config': {'name': 'cobyla', 'rand_every': 4, 'jitter': True},
-    'domain_config': [('real', [-5.0, 10.0]), ('real', [0.0, 15.0])],
+    'domain_config': {'x1': ('real', [-5.0, 10.0]), 'x2': ('real', [0.0, 15.0])},
 }
 tu = Tuun(config)
 
