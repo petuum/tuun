@@ -23,9 +23,9 @@ def configure_config(table_config):
     for key, value in table_config.items():
         if value[0] == 'real':
             updated_config[key] = float
-        elif value[0] == 'integer':
+        elif value[0] == 'integral':
             updated_config[key] = int
-        elif value[0] == 'choice':
+        elif value[0] == 'list':
             updated_config[key] = str
         else:
             raise TypeError(f"Invalid type specified for parameter {key}")

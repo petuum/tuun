@@ -23,10 +23,17 @@ try:
     from .gp_stan import StanGp
     from .gp_stan_product import StanProductGp
     from .gp_stan_distmat import StanDistmatGp
+    from .gp_stan_transfer import StanTransferGp
 except:
     pass
 
-# Gpytorch models
+# GPyStan models
+try:
+    from .gp_gpystan import GpystanGp
+except:
+    pass
+
+# GPyTorch models
 try:
     from .gp_gpytorch import GpytorchGp
     from .gp_gpytorch_product import GpytorchProductGp

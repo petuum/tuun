@@ -2,12 +2,14 @@ import os
 import sys
 import json
 import logging
-from logging import FileHandler, Formatter
+from logging import FileHandler, Formatter, StreamHandler
 from pathlib import Path
 
 
 file_format = '[%(asctime)s] %(levelname)s (%(name)s/%(threadName)s) %(message)s'
+stream_format = "%(levelname)s %(message)s"
 file_formatter = Formatter(file_format)
+stream_formatter = Formatter(stream_format)
 
 
 class StreamToLogger(object):
@@ -85,4 +87,9 @@ def _get_logger(name, level, file_path) -> logging.Logger:
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(level)
     logger.addHandler(file_handler)
+    stream_handler = StreamHandler()
+    stream_handler.setLevel(level)
+    stream_handler.setFormatter(stream_formatter)
+    logger.addHandler(stream_handler)
+    logger.propagate = False
     return logger

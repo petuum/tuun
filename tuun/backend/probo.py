@@ -3,6 +3,7 @@ Code for using ProBO as the backend tuning system.
 """
 from argparse import Namespace
 import copy
+from collections import defaultdict
 
 import tuun.probo as probo
 from .core import Backend
@@ -40,7 +41,7 @@ class ProboBackend(Backend):
 
         # Set self.probo_config
         if not probo_config:
-            probo_config = {}
+            probo_config = defaultdict(lambda: None)
         self.probo_config = probo_config
 
         # Transform domain
@@ -118,7 +119,7 @@ class ProboBackend(Backend):
         data = self._transform_data(data)
 
         # Set model, acqfunction, acqoptimizer
-        model = self._get_model(verbose)
+        model = self._get_model(verbose, data=data)
         acqfunction = self._get_acqfunction(verbose)
         acqoptimizer = self._get_acqoptimizer(verbose)
 
@@ -144,7 +145,7 @@ class ProboBackend(Backend):
         suggestion = self._convert_probo_suggestion_to_tuun(suggestion)
         return suggestion
 
-    def _get_model(self, verbose=True):
+    def _get_model(self, verbose=True, data=None):
         """
         Return ProBO model based on self.model_config.
         """
@@ -155,6 +156,7 @@ class ProboBackend(Backend):
             'stangp',
             'stanproductgp',
             'standistmatgp',
+            'stantransfergp',
             'gpytorchgp',
             'gpytorchproductgp',
             'sklearnpenn',
@@ -170,6 +172,8 @@ class ProboBackend(Backend):
             model = probo.StanProductGp(self.model_config, verbose=verbose)
         elif name == 'standistmatgp':
             model = probo.StanDistmatGp(self.model_config, verbose=verbose)
+        elif name == 'stantransfergp':
+            model = probo.StanTransferGp(self.model_config, data=data, verbose=verbose)
         elif name == 'gpytorchgp':
             model = probo.GpytorchGp(self.model_config, verbose=verbose)
         elif name == 'gpytorchproductgp':

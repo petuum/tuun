@@ -223,7 +223,7 @@ class StanGp:
                 'D': self.params.ndimx,
                 'N': len(self.data.x),
                 'x': self.data.x,
-                'y': self.data.y.flatten(),
+                'y': np.array(self.data.y).reshape(-1),
             }
         elif self.params.model_str == 'opt' or self.params.model_str == 'samp':
             return {
@@ -235,7 +235,7 @@ class StanGp:
                 'n4': self.params.n4,
                 'D': self.params.ndimx,
                 'N': len(self.data.x),
-                'y': self.data.y.flatten(),
+                'y': np.array(self.data.y).reshape(-1),
                 'x': self.data.x,
             }
 

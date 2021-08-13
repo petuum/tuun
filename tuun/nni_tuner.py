@@ -136,7 +136,7 @@ class TuunTuner(Tuner):
         """
         if self._optimize_mode == OptimizeMode.Minimize:
             suggestion = self.tuun.suggest_to_minimize(self.data)
-        else:  # self._optimize_mode is guaranteed as 'min' or 'max'.
+        else:
             suggestion = self.tuun.suggest_to_maximize(self.data)
         parsed_dict = self._parse_suggestion_into_dict(suggestion)
         return parsed_dict

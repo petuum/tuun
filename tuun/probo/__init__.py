@@ -17,7 +17,13 @@ from .design import AcqOptDesigner
 
 # Stan models
 try:
-    from .models import StanGp, StanProductGp, StanDistmatGp
+    from .models import StanGp, StanProductGp, StanDistmatGp, StanTransferGp
+except:
+    pass
+
+# GPyStan models
+try:
+    from .models import GpystanGp
 except:
     pass
 
@@ -27,7 +33,7 @@ try:
 except:
     pass
 
-# Gpytorch models
+# GPyTorch models
 try:
     from .models import GpytorchGp
     from .models import GpytorchProductGp
