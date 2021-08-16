@@ -3,3 +3,4 @@ scipy>=1.5.0
 matplotlib>=3.2.2
 scikit-learn>=0.23.1
 pytest>=5.4.3
+sqlite-utils>=3.12

@@ -3,6 +3,7 @@ Classes for list (discrete set) domains.
 """
 
 from argparse import Namespace
+import copy
 import numpy as np
 
 from ..util.misc_util import dict_to_namespace
@@ -74,9 +75,16 @@ class ListDomain:
             randind = np.arange(min(n, len(self.domain_list)))
         return [self.domain_list[i] for i in randind]
 
+    def set_print_params(self):
+        """Set self.print_params."""
+        if not hasattr(self, 'print_params'):
+            self.print_params = copy.deepcopy(self.params)
+            delattr(self.print_params, "domain_list")
+
     def _print_str(self):
         """Print a description string."""
         print('*[INFO] ' + str(self))
 
     def __str__(self):
-        return f'ListDomain with params={self.params}'
+        self.set_print_params()
+        return f'ListDomain with params={self.print_params}'

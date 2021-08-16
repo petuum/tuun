@@ -133,7 +133,7 @@ class StanDistmatGp(StanGp):
                 'n2': self.params.n2,
                 'sigma': self.params.sigma,
                 'N': len(self.data.x),
-                'y': np.array(self.data.y).reshape(-1),
+                'y': self.data.y.flatten(),
                 'distmat': self.params.distmat_function(self.data.x, self.data.x),
             }
         elif self.params.model_str == 'opt' or self.params.model_str == 'samp':
@@ -145,7 +145,7 @@ class StanDistmatGp(StanGp):
                 'n3': self.params.n3,
                 'n4': self.params.n4,
                 'N': len(self.data.x),
-                'y': np.array(self.data.y).reshape(-1),
+                'y': self.data.y.flatten(),
                 'distmat': self.params.distmat_function(self.data.x, self.data.x),
             }
 
