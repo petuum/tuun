@@ -32,14 +32,13 @@ To conduct transfer optimization, Tuun makes use of a Gaussian process (GP) mode
 transfer-learned prior mean function. Specifically, point-prediction regression models
 are trained in an offline fashion on previously-collected tuning data from previous
 tuning tasks.  During online tuning of a new task, the compatibility of each regression
-model with the new task is assessed, and these regression models are then used to define
-a single function, which is used as the prior mean function within a GP model. We refer
-to this full framework as a GP model with transfer-learned prior mean. Given this prior
-mean function, the GP is then used within a Bayesian optimization procedure for
-efficient hyperparameter tuning.  This procedure allows for few-shot recommendation of
-hyperparameters using only a handful of tuning steps, but also yields a full
-optimization procedure that searches for and returns more-accurate global optima given a
-larger budget of tuning steps.
+model with the new task is assessed, which is used to select a single regression models
+as the prior mean function within a GP model. We refer to this full framework as a *GP
+model with transfer-learned prior mean*. Given this prior mean function, the GP is then
+used within a Bayesian optimization procedure for efficient hyperparameter tuning.  This
+procedure allows for few-shot recommendation of hyperparameters using only a handful of
+tuning steps, but also yields a full optimization procedure that searches for and
+returns more-accurate global optima given a larger budget of tuning steps.
 
 Example
 -------
