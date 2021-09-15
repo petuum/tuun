@@ -36,12 +36,14 @@ class SimpleBo:
         f : function
             Function to optimize.
         model : Model
-            Model instance. Default is None, which uses a random acquisition function.
+            Model instance. Default is None, which uses a random-prediction model
+            (equivalent to an arbitrary model with random acquisition function).
         acqfunction : AcqFunction_or_Namespace_or_dict
-            AcqFunction instance or Namespace/dict of parameters. Default is EI.
+            AcqFunction instance or Namespace/dict of parameters. Default is None, which
+            uses the EI acquisition function.
         acqoptimizer : AcqOptimizer_or_Namespace_or_dict
             AcqOptimizer instance or Namespace/dict of parameters. Default is None,
-            which uses random search.
+            which uses random search to optimize the acquisition function.
         data : Namespace_or_dict
             Namespace or dict of initial data. Contains fields x and y (lists).
         data_update_fun : function

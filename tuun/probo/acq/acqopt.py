@@ -203,9 +203,19 @@ class AcqOptimizer:
         sort_idx_list = list(np.argsort(new_data.y))
         return self.get_n_xin_list_from_sort_idx_list(new_data.x, sort_idx_list)
 
+    def set_print_params(self):
+        """Set self.print_params."""
+        if not hasattr(self, 'print_params'):
+            self.print_params = copy.deepcopy(self.params)
+            try:
+                delattr(self.print_params.domain_params, "domain_list")
+            except AttributeError:
+                pass
+
     def print_str(self):
         """Print a description string."""
         print('*[INFO] ' + str(self))
 
     def __str__(self):
-        return f'AcqOptimizer with params={self.params}'
+        self.set_print_params()
+        return f'AcqOptimizer with params={self.print_params}'

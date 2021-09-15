@@ -1,0 +1,130 @@
+{
+    "datasets": [
+        "CIFAR10",
+        "CIFAR100",
+        "FLOWER102",
+        "RESISC45",
+        "FOOD101",
+        "SOP",
+        "BOOKCOVER30",
+        "CALTECH256",
+        "ISR",
+        "OIPETS",
+        "ACTION40",
+        "SCENE15",
+        "IP102",
+        "CUB200",
+        "PLANT39",
+        "SDD",
+        "AWA2",
+        "CARS196",
+        "PLACE365SUB1",
+        "PLACE365SUB2",
+        "PLACE365SUB3",
+        "SUN397SUB1",
+        "SUN397SUB2",
+        "SUN397SUB3",
+        "IMAGENET64SUB1",
+        "IMAGENET64SUB2",
+        "IMAGENET64SUB3"
+    ],
+    "prior_mean_function_url": "https://github.com/willieneis/tuun-dev/blob/priormean/templates/image_classification/image_classification.tgz",
+    "configuration": {
+        "BatchSize": {
+            "_type": "uniform",
+            "_value": [32, 128]
+        },
+        "Model": {
+            "_type": "choice",
+            "_value": ["resnet34", "resnet50"]
+        },
+        "Optimizer": {
+            "_type": "choice",
+            "_value": {
+                "Adam": {
+                    "learning_rate": {
+                        "_type": "loguniform",
+                        "_value": [1e-4, 0.1]
+                    },
+                    "weight_decay": {
+                        "_type": "loguniform",
+                        "_value": [1e-5, 1e-3]
+                    },
+                    "beta_0": {
+                        "_type": "loguniform",
+                        "_value": [0.5, 0.999]
+                    },
+                    "beta_1": {
+                        "_type": "loguniform",
+                        "_value": [0.8, 0.999]
+                    }
+                },
+                "Momentum": {
+                    "learning_rate": {
+                        "_type": "loguniform",
+                        "_value": [1e-4, 0.1]
+                    },
+                    "weight_decay": {
+                        "_type": "loguniform",
+                        "_value":  [1e-5, 1e-3]
+                    },
+                    "momentum_factor": {
+                        "_type": "loguniform",
+                        "_value": [1e-3, 1]
+                    }
+                }
+            }
+        },
+        "Scheduler": {
+            "_type": "choice",
+            "_value": {
+                "StepLR": {
+                    "step_size": {
+                        "_type": "uniform",
+                        "_value": [2, 20]
+                    },
+                    "gamma": {
+                        "_type": "loguniform", 
+                        "_value": [0.1, 0.5]
+                    }
+                },
+                "ExponentialLR": {
+                    "gamma": {
+                        "_type": "loguniform",
+                        "_value": [0.85, 0.999]
+                    }
+                },
+                "CyclicLR": {
+                    "gamma": {
+                        "_type": "loguniform",
+                        "_value": [0.85, 0.999]
+                    },
+                    "max_learning_rate": {
+                        "_type": "uniform",
+                        "_value": [1.1, 1.5]
+                    },
+                    "step_size_up": {
+                        "_type": "uniform",
+                        "_value": [1, 10]
+                    }
+                },
+                "CosineAnnealingWarmRestarts": {
+                    "T_0": {
+                        "_type": "uniform",
+                        "_value": [2, 20]
+                    },
+                    "T_mult": {
+                        "_type": "uniform",
+                        "_value": [1, 4]
+                    },
+                    "ETA_min": {
+                        "_type": "uniform",
+                        "_value": [0.5, 0.9]
+                    }
+                }
+            }
+        }
+
+    }
+    
+}

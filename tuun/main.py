@@ -2,9 +2,16 @@
 Main interface for Tuun.
 """
 from argparse import Namespace
+from tuun.util.database import MetricDatabase
 import numpy as np
-
+import os
 from .backend import ProboBackend, DragonflyBackend
+from .util.log import init_default_logger
+from .util.database import init_db
+from .util.misc_util import shortuid, dict_to_listspace
+
+
+ENV_TUUN_LOG = os.getenv('TUUN_LOG', 'False')
 
 
 class Tuun:
@@ -17,6 +24,20 @@ class Tuun:
         config_dict : dict
             Config to specify Tuun options.
         """
+        # Initialize stdout logger
+        self.exp_id = shortuid()
+        init_default_logger(self.exp_id, config_dict)
+
+        # Initialize database
+        if 'domain_config' in config_dict:
+            self.db: MetricDatabase = init_db(
+                'tuun.sqlite',
+                self.exp_id,
+                config_dict['domain_config'])
+        else:
+            self.db = None
+
+        self._parameter_keys = None
         self._configure_tuun(config_dict)
         self._set_backend()
 
@@ -62,6 +83,10 @@ class Tuun:
         domain_config = getattr(config, 'domain_config', None)
         if domain_config is None:
             domain_config = ('real', [0.0, 10.0])
+        if type(domain_config) == dict:
+            self._parameter_keys = list(domain_config.keys())
+            domain_config = dict_to_listspace(domain_config)
+
         search_space = self._convert_search_space_to_probo(domain_config)
         self._set_domain_config_from_list(search_space)
 
@@ -112,7 +137,7 @@ class Tuun:
                 dragonfly_config=self.config.dragonfly_config,
             )
 
-    def set_config_from_list(self, search_space_list):
+    def set_config_from_list(self, search_space):
         """
         Automatically configure the Tuun search space given a search_space_list (a list
         of tuples each containing a domain type and a domain bounds specification).
@@ -125,7 +150,14 @@ class Tuun:
             optimization block which can have a unique domain type. Each element tuple
             consists of (domain type, domain bounds specification).
         """
-        search_space_list = self._format_search_space_list(search_space_list)
+        if type(search_space) == dict:
+            if ENV_TUUN_LOG.lower() in ('true', 't', '1') and not self.db:
+                self.db = init_db('tuun.sqlite', self.exp_id, search_space)
+
+            self._parameter_keys = list(search_space.keys())
+            search_space = dict_to_listspace(search_space)
+
+        search_space_list = self._format_search_space_list(search_space)
 
         # Convert search_space_list to ProBO format.
         # TODO: incorporate this into probo backend
@@ -264,7 +296,7 @@ class Tuun:
         if not self.config.probo_config:
             self.config.probo_config = {}
 
-        real_idx = [i for i, ss in enumerate(search_space_list) if ss[0]=='real']
+        real_idx = [i for i, ss in enumerate(search_space_list) if ss[0] == 'real']
         self.config.probo_config['real_idx'] = real_idx
 
         if len(real_idx) == len(search_space_list):
@@ -335,6 +367,8 @@ class Tuun:
         """
         self._set_seed(seed=seed)
         data = self._format_initial_data(data)
+        if data.x and ENV_TUUN_LOG.lower() in ('true', 't', '1'):
+            self.db.add_metric(data)
 
         # Set data-dependent subseed
         subseed = int(np.random.uniform(12345 * (len(data.x) + 1)))
@@ -493,7 +527,7 @@ class Tuun:
         result.data = data
         return result
 
-    def _run_backend_minimize_function(f, n_iter, data, data_update_fun, verbose, seed):
+    def _run_backend_minimize_function(self, f, n_iter, data, data_update_fun, verbose, seed):
         """Run self.backend.minimize_function method."""
 
         if self.config.backend == 'dragonfly':
