@@ -207,7 +207,10 @@ class AcqOptimizer:
         """Set self.print_params."""
         if not hasattr(self, 'print_params'):
             self.print_params = copy.deepcopy(self.params)
-            delattr(self.print_params.domain_params, "domain_list")
+            try:
+                delattr(self.print_params.domain_params, "domain_list")
+            except AttributeError:
+                pass
 
     def print_str(self):
         """Print a description string."""
