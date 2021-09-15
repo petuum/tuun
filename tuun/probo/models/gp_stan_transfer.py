@@ -49,11 +49,11 @@ class StanTransferGp(StanGp):
             for i, reg in enumerate(regressor.model_fnames):
                 try:
                     val_acc = regressor.evaluate_model(reg, data.x)
-                    neg_error = -1. * np.mean((data.y - val_acc) ** 2)
-                    mean_errors.append((neg_error, i))
+                    error = np.mean((data.y - val_acc) ** 2)
+                    mean_errors.append((error, i))
                 except:
                     print(f'Transfer model file in tarball did not load: {reg}')
-            mean_errors.sort(reverse=True)
+            mean_errors.sort()
             if mean_errors[0][0] > self.params.transfer_config.get('metric_threshold', 0.6):
                 regressor.set_best_model(-1)
             else:
