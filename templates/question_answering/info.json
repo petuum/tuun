@@ -6,7 +6,7 @@
         "QUAC",
         "NQ"
     ],
-    "prior_mean_function_url": "REMOTE/PATH/TO/GBR/WEIGHTS",
+    "prior_mean_function_url": "https://github.com/petuum/tuun/blob/question_answering/templates/question_answering/question_answering.tgz",
     "configuration": {
         },
         "Model": {
