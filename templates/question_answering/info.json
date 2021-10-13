@@ -1,0 +1,71 @@
+{
+    "datasets": [
+        "SQUADV1",
+        "SQUADV2",
+        "COQA",
+        "QUAC",
+        "NQ"
+    ],
+    "prior_mean_function_url": "https://github.com/petuum/tuun/blob/question_answering/templates/question_answering/question_answering.tgz",
+    "configuration": {
+        },
+        "Model": {
+            "_type": "choice",
+            "_value": ["bert-base-uncased"]
+        },
+        "Optimizer": {
+            "_type": "choice",
+            "_value": {
+                "Adam": {
+                    "learning_rate": {
+                        "_type": "loguniform",
+                        "_value": [1e-6, 3e-4]
+                    },
+                    "weight_decay": {
+                        "_type": "loguniform",
+                        "_value": [0, 0.3]
+                    },
+                    "adam_epsilon": {
+                        "_type": "uniform",
+                        "_value": [1e-10, 1e-6 ]
+                    }
+                }
+            }
+        },
+        "Scheduler": {
+            "_type": "choice",
+            "_value": {
+                "linear": {
+                    "num_warmup_steps": {
+                        "_type": "quniform",
+                        "_value": [0, 5000, 1000]
+                    }
+                },
+                "polynomial": {
+                    "num_warmup_steps": {
+                        "_type": "quniform",
+                        "_value": [0, 5000, 1000]
+                    },
+                    "lr_end": {
+                        "_type": "uniform",
+                        "_value": [0.00000001, 0.0000001]
+                    },
+                    "power": {
+                        "_type": "randint",
+                        "_value": [1, 3]
+                    }
+                },
+                "cosine": {
+                    "num_warmup_steps": {
+                        "_type": "quniform",
+                        "_value": [0, 5000, 1000]
+        
+                    },
+                    "num_cycles": {
+                        "_type": "quniform",
+                        "_value": [1, 4, 1]
+                    }
+                }
+            }
+        }
+}
